@@ -8,6 +8,11 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 
+// 1.setup cors
+app.use(cors(
+  {origin: 'https://trial-2-5mv8.onrender.com'}
+));
+
 // Import database
 const db = require('./config/database');
 
