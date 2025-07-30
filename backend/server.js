@@ -70,7 +70,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   'file://',
-  'https://frosstbank-frontend.onrender.com',
+  'https://trial-2-5mv8-backend.onrender.com',
   'https://trial-2-5mv8.onrender.com' // ✅ Your frontend domain
 ];
 
