@@ -14,7 +14,9 @@ app.use(express.json());
 
 // 1.setup cors
 app.use(cors(
-  {origin: [
+  {origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : [
     'https://trial-2-5mv8.onrender.com', // <-- your frontend's deployed URL
     'http://localhost:3000',             // for local dev, optional
     'http://localhost:4000'              // for local dev, optional
