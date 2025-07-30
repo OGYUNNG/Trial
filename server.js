@@ -11,7 +11,7 @@ app.use(express.json());
 
 // 2. set up cors
 app.use(cors(
-  {origin: ['http://localhost:4000', 'https://trial-2-5mv8-backend.onrender.com'] 
+  {origin: ['https://trial-2-5mv8-backend.onrender.com', 'http://localhost:4000'] 
   , methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
   }

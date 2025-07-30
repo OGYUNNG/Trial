@@ -8,16 +8,17 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const app = express();
-const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:3000',
-  'https://trial-2-5mv8.onrender.com'
-];
+
 // Middleware to parse JSON requests
 app.use(express.json());
 
 // 1.setup cors
 app.use(cors(
-  {origin: allowedOrigins,
+  {origin: [
+    'https://trial-2-5mv8.onrender.com', // <-- your frontend's deployed URL
+    'http://localhost:3000',             // for local dev, optional
+    'http://localhost:4000'              // for local dev, optional
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   }
