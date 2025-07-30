@@ -71,6 +71,7 @@ const allowedOrigins = [
   'http://127.0.0.1:3000', 
   'file://',
   'https://trial-lu63.onrender.com',
+  'https://trial-2-5mv8.onrender.com',
   'https://frosstbank-frontend.onrender.com'
 ];
 
@@ -83,11 +84,18 @@ const corsOptions = {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      // For development, allow all origins
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));

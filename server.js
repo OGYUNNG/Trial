@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const PORT = 3000;
+const cors = require('cors');
 // Database configuration removed - using backend server instead
 
 // Middleware to serve static files
