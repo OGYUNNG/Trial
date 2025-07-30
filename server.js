@@ -6,6 +6,7 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 const cors = require('cors');
+
 // 2. set up cors
 app.use(cors(
   {origin: 'https://trial-2-5mv8.onrender.com'

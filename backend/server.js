@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const app = express();
 
 // 1.setup cors
 app.use(cors(
@@ -69,7 +70,6 @@ const sequelize = {
   }
 };
 
-const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: 'https://trial-2-5mv8.onrender.com'
   , methods: ['GET', 'POST', 'PUT', 'DELETE'] } });
