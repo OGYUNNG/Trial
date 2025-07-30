@@ -75,42 +75,6 @@ const io = new Server(server, { cors: { origin: 'https://trial-2-5mv8.onrender.c
   , methods: ['GET', 'POST', 'PUT', 'DELETE'] } });
 
 // CORS configuration for production
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'file://',
-  'https://trial-2-5mv8-backend.onrender.com',
-  'https://trial-2-5mv8.onrender.com'
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      // For development, allow all origins
-      if (process.env.NODE_ENV === 'development') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-app.use(cors(
-  {origin: 'https://trial-2-5mv8.onrender.com'
-  , methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Create data directory if it doesn't exist
 const dataDir = path.join(__dirname, 'data');
