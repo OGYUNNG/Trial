@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Creation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-form { max-width: 400px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #4F46E5; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #4338CA; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #D1FAE5; border: 1px solid #10B981; }
+        .error { background: #FEE2E2; border: 1px solid #EF4444; }
+        .info { background: #DBEAFE; border: 1px solid #3B82F6; }
+    </style>
+</head>
+<body>
+    <h1>User Creation Test</h1>
+    <p>This page tests the user creation functionality.</p>
+    
+    <div class="test-form">
+        <form id="testForm">
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" id="name" value="Test User" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="test@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="account">Account:</label>
+                <input type="text" id="account" value="TEST001" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="balance">Initial Balance:</label>
+                <input type="number" id="balance" value="1000" required>
+            </div>
+            
+            <button type="submit">Create Test User</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('result');
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const account = document.getElementById('account').value;
+            const balance = parseFloat(document.getElementById('balance').value);
+            
+            resultDiv.innerHTML = '<div class="info">Creating user...</div>';
+            
+            try {
+                // First, login as admin
+                console.log('1. Logging in as admin...');
+                const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@frosstbank.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                
+                if (!loginData.token) {
+                    throw new Error('Admin login failed: ' + loginData.error);
+                }
+                
+                console.log('✅ Admin login successful');
+                
+                // Create user
+                console.log('2. Creating user...');
+                const userData = {
+                    name,
+                    email,
+                    password: 'testpass123',
+                    account,
+                    role: 'user',
+                    profilePicture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=059669&color=fff&size=40`
+                };
+                
+                const createResponse = await fetch('http://localhost:4000/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${loginData.token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (!createResponse.ok) {
+                    const errorText = await createResponse.text();
+                    throw new Error(`HTTP ${createResponse.status}: ${errorText}`);
+                }
+                
+                const createData = await createResponse.json();
+                
+                if (createData._id) {
+                    console.log('✅ User created successfully!');
+                    
+                    // Add initial balance transaction
+                    if (balance > 0) {
+                        console.log('3. Adding initial balance...');
+                        const transactionData = {
+                            user: createData._id,
+                            date: new Date().toISOString().split('T')[0],
+                            time: new Date().toLocaleTimeString(),
+                            description: 'Initial deposit',
+                            category: 'Deposit',
+                            amount: balance,
+                            status: 'completed'
+                        };
+                        
+                        const transactionResponse = await fetch('http://localhost:4000/api/transactions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${loginData.token}`
+                            },
+                            body: JSON.stringify(transactionData)
+                        });
+                        
+                        if (transactionResponse.ok) {
+                            console.log('✅ Initial balance added!');
+                        }
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Created Successfully!</h3>
+                            <p><strong>Name:</strong> ${createData.name}</p>
+                            <p><strong>Email:</strong> ${createData.email}</p>
+                            <p><strong>Account:</strong> ${createData.account}</p>
+                            <p><strong>Initial Balance:</strong> $${balance}</p>
+                            <p><strong>User ID:</strong> ${createData._id}</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('User creation failed: ' + JSON.stringify(createData));
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Creating User</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 

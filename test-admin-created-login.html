@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin-Created User Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #4F46E5; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+        button:hover { background: #4338CA; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #D1FAE5; border: 1px solid #10B981; }
+        .error { background: #FEE2E2; border: 1px solid #EF4444; }
+        .info { background: #DBEAFE; border: 1px solid #3B82F6; }
+        .user-info { background: #F3F4F6; padding: 15px; border-radius: 4px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Test Admin-Created User Login</h1>
+    <p>This test verifies that users created by admin can login successfully.</p>
+    
+    <!-- Step 1: Create User via Admin -->
+    <div class="test-section">
+        <h2>Step 1: Create User via Admin</h2>
+        <p>First, login as admin and create a new user.</p>
+        
+        <form id="createUserForm">
+            <div class="form-group">
+                <label for="userName">Name:</label>
+                <input type="text" id="userName" value="Test User" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="userEmail">Email:</label>
+                <input type="email" id="userEmail" value="testuser@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="userAccount">Account:</label>
+                <input type="text" id="userAccount" value="TEST001" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="userPassword">Password:</label>
+                <input type="password" id="userPassword" value="testpass123" required>
+            </div>
+            
+            <button type="submit">Create User via Admin</button>
+        </form>
+        
+        <div id="createUserResult"></div>
+    </div>
+    
+    <!-- Step 2: Test User Login -->
+    <div class="test-section">
+        <h2>Step 2: Test User Login</h2>
+        <p>Now test if the created user can login.</p>
+        
+        <form id="testLoginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" value="testuser@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" value="testpass123" required>
+            </div>
+            
+            <button type="submit">Test User Login</button>
+        </form>
+        
+        <div id="loginResult"></div>
+    </div>
+    
+    <!-- Step 3: Test Dashboard Routing -->
+    <div class="test-section">
+        <h2>Step 3: Test Dashboard Routing</h2>
+        <p>Test if the user is redirected to the correct dashboard.</p>
+        
+        <button onclick="testDashboardRouting()" id="routingBtn" disabled>Test Dashboard Routing</button>
+        
+        <div id="routingResult"></div>
+    </div>
+    
+    <!-- Current Users -->
+    <div class="test-section">
+        <h2>Current Users in Database</h2>
+        <button onclick="loadUsers()">Refresh Users List</button>
+        <div id="usersList"></div>
+    </div>
+
+    <script>
+        let createdUser = null;
+        let userToken = null;
+        
+        // Create User via Admin
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('createUserResult');
+            
+            try {
+                // Step 1: Login as admin
+                console.log('1. Logging in as admin...');
+                const adminLoginResponse = await fetch('http://localhost:4000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@frosstbank.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const adminLoginData = await adminLoginResponse.json();
+                if (!adminLoginData.token) {
+                    throw new Error('Admin login failed: ' + adminLoginData.error);
+                }
+                
+                console.log('✅ Admin login successful');
+                
+                // Step 2: Create user via admin
+                console.log('2. Creating user via admin...');
+                const userData = {
+                    name: document.getElementById('userName').value,
+                    email: document.getElementById('userEmail').value,
+                    password: document.getElementById('userPassword').value,
+                    account: document.getElementById('userAccount').value,
+                    role: 'user',
+                    profilePicture: `https://ui-avatars.com/api/?name=${encodeURIComponent(document.getElementById('userName').value)}&background=059669&color=fff&size=40`
+                };
+                
+                const createResponse = await fetch('http://localhost:4000/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminLoginData.token}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                const createData = await createResponse.json();
+                
+                if (createData._id) {
+                    createdUser = createData;
+                    console.log('✅ User created successfully via admin');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Created Successfully via Admin!</h3>
+                            <div class="user-info">
+                                <p><strong>Name:</strong> ${createData.name}</p>
+                                <p><strong>Email:</strong> ${createData.email}</p>
+                                <p><strong>Account:</strong> ${createData.account}</p>
+                                <p><strong>Role:</strong> ${createData.role}</p>
+                                <p><strong>Password:</strong> ${userData.password}</p>
+                                <p><strong>User ID:</strong> ${createData._id}</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Update login form with created user's email
+                    document.getElementById('loginEmail').value = createData.email;
+                    loadUsers();
+                } else {
+                    throw new Error('User creation failed: ' + JSON.stringify(createData));
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Creating User</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Test User Login
+        document.getElementById('testLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('loginResult');
+            
+            try {
+                console.log('3. Testing user login...');
+                const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                
+                if (loginData.token) {
+                    userToken = loginData.token;
+                    console.log('✅ User login successful');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Login Successful!</h3>
+                            <div class="user-info">
+                                <p><strong>Role:</strong> ${loginData.user.role}</p>
+                                <p><strong>Name:</strong> ${loginData.user.name}</p>
+                                <p><strong>Account:</strong> ${loginData.user.account}</p>
+                                <p><strong>Balance:</strong> $${loginData.user.balance || 0}</p>
+                                <p><strong>Should redirect to:</strong> dashboard.html</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Enable routing test button
+                    document.getElementById('routingBtn').disabled = false;
+                    
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ User Login Failed</h3>
+                            <p>${loginData.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Test Dashboard Routing
+        function testDashboardRouting() {
+            const resultDiv = document.getElementById('routingResult');
+            
+            if (!userToken) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Please login first</h3>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Simulate what login.js does
+            localStorage.setItem('jwtToken', userToken);
+            localStorage.setItem('userInfo', JSON.stringify({
+                role: 'user',
+                name: createdUser ? createdUser.name : 'Test User'
+            }));
+            
+            resultDiv.innerHTML = `
+                <div class="success">
+                    <h3>✅ Dashboard Routing Test</h3>
+                    <p>Token stored in localStorage</p>
+                    <p>User role: user</p>
+                    <p>Should redirect to: dashboard.html</p>
+                    <button onclick="window.location.href='dashboard.html'">Go to User Dashboard</button>
+                    <button onclick="window.location.href='login.html'">Go to Login Page</button>
+                </div>
+            `;
+        }
+        
+        // Load Users List
+        async function loadUsers() {
+            const resultDiv = document.getElementById('usersList');
+            
+            try {
+                // Login as admin first
+                const loginResponse = await fetch('http://localhost:4000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@frosstbank.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                if (!loginData.token) {
+                    throw new Error('Admin login failed');
+                }
+                
+                // Get users
+                const usersResponse = await fetch('http://localhost:4000/api/users', {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`
+                    }
+                });
+                
+                const users = await usersResponse.json();
+                
+                let html = '<h3>Users in Database:</h3>';
+                users.forEach(user => {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">
+                            <strong>${user.name}</strong> (${user.email}) - ${user.role}
+                            <br><small>Account: ${user.account}</small>
+                        </div>
+                    `;
+                });
+                
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error loading users</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Load users on page load
+        window.addEventListener('load', loadUsers);
+    </script>
+</body>
+</html> 

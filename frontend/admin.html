@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Frosst Bank</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <!-- Sidebar -->
+  <div class="flex h-screen">
+    <aside class="w-64 bg-indigo-900 text-white p-5">
+      <h2 class="text-2xl font-bold mb-8">Bank Admin</h2>
+      <nav class="flex flex-col space-y-4">
+        <a href="#create" class="hover:text-indigo-300">Create User</a>
+        <a href="#users" class="hover:text-indigo-300">Manage Users</a>
+        <a href="#chat" class="hover:text-indigo-300 relative">
+          Live Chat
+          <span id="chatNotification" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
+        </a>
+        <a href="#transfers" class="hover:text-indigo-300 relative">
+          Transfer Requests
+          <span id="transferNotification" class="hidden absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
+        </a>
+      </nav>
+      
+      <!-- Admin Info and Logout -->
+      <div class="mt-auto pt-8 border-t border-indigo-700">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+            <span class="text-white font-bold">A</span>
+          </div>
+          <div>
+            <div class="text-sm font-medium">Admin User</div>
+            <div class="text-xs text-indigo-300">admin123@frosstbank.com</div>
+          </div>
+        </div>
+        <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded text-sm transition-colors">
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8 overflow-y-scroll">
+      
+      <!-- Create User -->
+      <section id="create" class="mb-10">
+        <h2 class="text-xl font-bold mb-4">Create New User</h2>
+        <form class="bg-white p-6 rounded shadow space-y-4" onsubmit="createUser(event)">
+          <input type="text" id="newName" placeholder="Full Name" class="w-full border p-2 rounded" required>
+          <input type="email" id="newEmail" placeholder="Email Address" class="w-full border p-2 rounded" required>
+          <input type="text" id="newAccount" placeholder="Account Number" class="w-full border p-2 rounded" required>
+          <input type="number" id="newBalance" placeholder="Initial Balance" class="w-full border p-2 rounded" required>
+
+          <!-- Drag-and-Drop Upload -->
+          <div id="dropZone" class="border-2 border-dashed border-gray-400 rounded p-4 text-center cursor-pointer">
+            <p>Drag & drop profile image here or click to upload</p>
+            <input type="file" id="newPictureFile" accept="image/*" class="hidden">
+          </div>
+          <img id="previewImg" src="" alt="Preview" class="h-20 w-20 rounded-full mx-auto hidden" />
+
+          <button type="submit" class="bg-indigo-700 text-white px-4 py-2 rounded">Create User</button>
+        </form>
+      </section>
+
+      <!-- User List -->
+      <section id="users" class="mb-10">
+        <h2 class="text-xl font-bold mb-4">Manage Users</h2>
+        
+        <!-- Search and Filter Controls -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <div class="flex flex-wrap gap-4 items-center">
+            <div class="flex-1 min-w-64">
+              <input type="text" id="searchUsers" placeholder="Search by name, email, or account..." 
+                     class="w-full border p-2 rounded" onkeyup="filterUsers()">
+            </div>
+            <div class="flex gap-2">
+              <select id="sortUsers" class="border p-2 rounded" onchange="sortUsers()">
+                <option value="name">Sort by Name</option>
+                <option value="balance">Sort by Balance</option>
+                <option value="account">Sort by Account</option>
+              </select>
+              <button onclick="exportUsers()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                Export Users
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white shadow rounded overflow-hidden">
+          <table class="w-full">
+          <thead>
+            <tr class="bg-gray-100 text-left">
+              <th class="p-3">Photo</th>
+              <th class="p-3">Name</th>
+              <th class="p-3">Email</th>
+              <th class="p-3">Account</th>
+              <th class="p-3">Balance ($)</th>
+              <th class="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTable">
+            <!-- Dynamically filled -->
+          </tbody>
+        </table>
+          <div id="noUsersMessage" class="hidden p-8 text-center text-gray-500">
+            No users found matching your search criteria.
+          </div>
+        </div>
+        
+        <!-- User Statistics -->
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded shadow">
+            <div class="text-2xl font-bold text-blue-600" id="totalUsers">0</div>
+            <div class="text-sm text-gray-600">Total Users</div>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <div class="text-2xl font-bold text-green-600" id="totalBalance">$0.00</div>
+            <div class="text-sm text-gray-600">Total Balance</div>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <div class="text-2xl font-bold text-purple-600" id="avgBalance">$0.00</div>
+            <div class="text-sm text-gray-600">Average Balance</div>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <div class="text-2xl font-bold text-orange-600" id="highBalanceUsers">0</div>
+            <div class="text-sm text-gray-600">Users > $10k</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transfer Requests -->
+      <section id="transfers" class="mb-10">
+        <h2 class="text-xl font-bold mb-4">Transfer Requests</h2>
+        <div class="bg-white rounded shadow p-6">
+          <div class="space-y-4" id="transferRequests">
+            <div class="border rounded p-4 bg-yellow-50">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="font-semibold">Transfer Request #TRX-2025-001</h3>
+                  <p class="text-sm text-gray-600">From: Primary Checking •••• 4567</p>
+                  <p class="text-sm text-gray-600">To: John Smith •••• 3456</p>
+                  <p class="text-sm text-gray-600">Amount: $500.00</p>
+                  <p class="text-sm text-gray-600">Status: Pending</p>
+                </div>
+                <div class="flex space-x-2">
+                  <button onclick="approveTransfer('TRX-2025-001')" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Approve</button>
+                  <button onclick="rejectTransfer('TRX-2025-001')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Chat -->
+      <section id="chat">
+        <h2 class="text-xl font-bold mb-4">
+          Live Chat with Users
+          <span id="signupChatIndicator" class="hidden ml-2 bg-blue-500 text-white px-2 py-1 rounded text-sm">Sign-up Chat Active</span>
+          <span id="dashboardChatIndicator" class="hidden ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm">Dashboard Chat Active</span>
+          <span id="liveChatIndicator" class="hidden ml-2 bg-purple-500 text-white px-2 py-1 rounded text-sm">Live Chat Active</span>
+          <span id="transferChatIndicator" class="hidden ml-2 bg-orange-500 text-white px-2 py-1 rounded text-sm">Transfer Chat Active</span>
+        </h2>
+        <div class="mb-4 flex space-x-2">
+          <button onclick="testSignupChat()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Test Sign-up Chat</button>
+          <button onclick="testDashboardChat()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Test Dashboard Chat</button>
+          <button onclick="testLiveChat()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm">Test Live Chat</button>
+          <button onclick="testTransferChat()" class="bg-orange-500 text-white px-3 py-1 rounded text-sm">Test Transfer Chat</button>
+        </div>
+        
+        <!-- Chat Source Selector -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Active Chat Sessions:</label>
+          <div id="activeChats" class="space-y-2">
+            <!-- Active chat sessions will be listed here -->
+          </div>
+        </div>
+
+        <div class="bg-white rounded shadow h-96 p-4 flex flex-col">
+          <div class="flex-1 overflow-y-auto mb-4" id="chatBox">
+            <!-- Chat messages go here -->
+            <div class="mb-2 text-left text-gray-800">
+              <span class="bg-gray-100 px-3 py-2 rounded inline-block">
+                <strong>System:</strong> Welcome to the unified chat system. You can now communicate with users from all pages.
+              </span>
+            </div>
+          </div>
+          <div class="flex">
+            <input type="text" id="chatInput" class="flex-1 border p-2 rounded-l" placeholder="Type a message...">
+            <button onclick="sendMessage()" class="bg-indigo-700 text-white px-4 py-2 rounded-r">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Manage Transactions -->
+      <section id="transactions" class="mb-10">
+        <h2 class="text-xl font-bold mb-4">Manage Transactions</h2>
+        <div class="bg-white p-6 rounded shadow mb-4">
+          <form id="addTransactionForm" class="flex flex-wrap gap-4 items-end">
+            <input type="text" id="txUserAccount" placeholder="User Account #" class="border p-2 rounded w-40" required>
+            <input type="date" id="txDate" class="border p-2 rounded w-36" required>
+            <input type="time" id="txTime" class="border p-2 rounded w-32" required>
+            <input type="text" id="txDescription" placeholder="Description" class="border p-2 rounded w-48" required>
+            <input type="text" id="txCategory" placeholder="Category" class="border p-2 rounded w-32" required>
+            <input type="number" id="txAmount" placeholder="Amount" class="border p-2 rounded w-28" required>
+            <select id="txStatus" class="border p-2 rounded w-32">
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+            </select>
+            <button type="submit" class="bg-indigo-700 text-white px-4 py-2 rounded">Add Transaction</button>
+          </form>
+        </div>
+        <div class="bg-white rounded shadow p-4">
+          <div class="mb-2 flex flex-wrap gap-2 items-center">
+            <input type="text" id="txSearch" placeholder="Search by account, description, or category..." class="border p-2 rounded flex-1" onkeyup="filterTransactions()">
+            <button onclick="exportTransactions()" class="bg-green-500 text-white px-3 py-1 rounded">Export</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="p-2">Account</th>
+                  <th class="p-2">Date</th>
+                  <th class="p-2">Time</th>
+                  <th class="p-2">Description</th>
+                  <th class="p-2">Category</th>
+                  <th class="p-2">Amount</th>
+                  <th class="p-2">Status</th>
+                  <th class="p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="txTable">
+                <!-- Transactions will be rendered here -->
+              </tbody>
+            </table>
+            <div id="noTxMessage" class="hidden p-8 text-center text-gray-500">No transactions found.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="bg-white p-6 rounded w-96">
+      <h3 class="text-lg font-bold mb-4">Edit User</h3>
+      <input type="text" id="editName" class="w-full border p-2 mb-2 rounded" />
+      <input type="email" id="editEmail" class="w-full border p-2 mb-2 rounded" />
+      <input type="text" id="editAccount" class="w-full border p-2 mb-2 rounded" />
+      <input type="number" id="editBalance" class="w-full border p-2 mb-2 rounded" />
+      <input type="url" id="editPicture" class="w-full border p-2 mb-4 rounded" />
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeEdit()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+        <button onclick="saveEdit()" class="bg-indigo-700 text-white px-4 py-2 rounded">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS Logic -->
+  <script>
+    // Check if admin is authenticated
+    function checkAuth() {
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return token;
+    }
+
+    // Get admin info from JWT token
+    function getAdminInfo() {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      const user = JSON.parse(userInfo);
+      if (user.role !== 'admin') {
+        window.location.href = 'dashboard.html';
+        return null;
+      }
+      return user;
+    }
+
+    // API helper function
+    async function apiCall(endpoint, options = {}) {
+      const token = checkAuth();
+      if (!token) return null;
+
+      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://frosstbank-backend.onrender.com';
+      const response = await fetch(`${backendUrl}/api${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = 'login.html';
+        return null;
+      }
+
+      return response.json();
+    }
+
+    // Initialize with empty arrays (will be populated from API)
+    let users = [];
+    let uploadedImgURL = "";
+    let chatActive = false;
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if admin is logged in
+      const admin = getAdminInfo();
+      if (!admin) return;
+
+      // Load data from backend
+      loadUsers();
+      loadTransactions();
+      updateActiveChatsDisplay();
+      initializeSocket(); // Initialize Socket.io
+    });
+
+    // Load users from backend API
+    async function loadUsers() {
+      try {
+        users = await apiCall('/users') || [];
+        renderUsers();
+        updateUserStatistics();
+      } catch (error) {
+        console.error('Error loading users:', error);
+        showNotification('Error loading users', 'error');
+      }
+    }
+
+    // Load transactions from backend API
+    async function loadTransactions() {
+      try {
+        const transactions = await apiCall('/transactions') || [];
+        renderTransactions(transactions);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+        showNotification('Error loading transactions', 'error');
+      }
+    }
+
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("newPictureFile");
+    const previewImg = document.getElementById("previewImg");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+    dropZone.addEventListener("dragover", (e) => e.preventDefault());
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      handleImageUpload(file);
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      handleImageUpload(file);
+    });
+
+    function handleImageUpload(file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file.');
+        return;
+      }
+      
+      // Compress image to reduce payload size
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = function() {
+        // Set canvas size (max 200x200 for profile pictures)
+        const maxSize = 200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress image
+        ctx.drawImage(img, 0, 0, width, height);
+        uploadedImgURL = canvas.toDataURL('image/jpeg', 0.7); // Compress to 70% quality
+        previewImg.src = uploadedImgURL;
+        previewImg.classList.remove("hidden");
+      };
+      
+      img.src = URL.createObjectURL(file);
+    }
+
+    async function createUser(event) {
+      event.preventDefault();
+      const name = document.getElementById('newName').value;
+      const email = document.getElementById('newEmail').value;
+      const account = document.getElementById('newAccount').value;
+      const balance = parseFloat(document.getElementById('newBalance').value) || 0;
+      const profilePicture = uploadedImgURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${getRandomColor()}&color=fff&size=40`;
+
+      // Validate inputs
+      if (!name || !email || !account) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      try {
+        // Create user via API
+        const newUser = await apiCall('/users', {
+          method: 'POST',
+          body: JSON.stringify({
+            name,
+            email,
+            password: 'defaultPassword123', // You might want to generate this or ask admin
+            account,
+            role: 'user',
+            profilePicture
+          })
+        });
+
+        if (newUser) {
+          // Add initial balance as a transaction
+          if (balance > 0) {
+            await apiCall('/transactions', {
+              method: 'POST',
+              body: JSON.stringify({
+                user: newUser._id,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString(),
+                description: 'Initial deposit',
+                category: 'Deposit',
+                amount: balance,
+                status: 'completed'
+              })
+            });
+          }
+
+          showNotification('User created successfully!', 'success');
+          loadUsers(); // Reload users
+          loadTransactions(); // Reload transactions
+        }
+      } catch (error) {
+        console.error('Error creating user:', error);
+        showNotification('Error creating user', 'error');
+      }
+
+      // Reset form
+      event.target.reset();
+      previewImg.classList.add("hidden");
+      uploadedImgURL = "";
+    }
+
+    function getRandomColor() {
+      const colors = ['4F46E5', '059669', 'DC2626', '7C3AED', 'EA580C', 'BE185D', '0891B2', '16A34A'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function renderUsers(userList = users) {
+      const tbody = document.getElementById('userTable');
+      const noUsersMessage = document.getElementById('noUsersMessage');
+      
+      if (!tbody) return;
+      
+      if (userList.length === 0) {
+        tbody.innerHTML = '';
+        if (noUsersMessage) noUsersMessage.classList.remove('hidden');
+        return;
+      }
+      
+      if (noUsersMessage) noUsersMessage.classList.add('hidden');
+      tbody.innerHTML = '';
+      
+      userList.forEach((user, index) => {
+        const row = `
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-3"><img src="${user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=4F46E5&color=fff&size=40`}" class="h-10 w-10 rounded-full" alt="${user.name}" /></td>
+            <td class="p-3 font-medium">${user.name}</td>
+            <td class="p-3 text-gray-600">${user.email}</td>
+            <td class="p-3 font-mono text-sm">${user.account}</td>
+            <td class="p-3 font-bold text-green-600">$${user.balance ? user.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}</td>
+            <td class="p-3">
+              <div class="flex space-x-2">
+                <button onclick="openEdit('${user._id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+                <button onclick="deleteUser('${user._id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+      
+      updateUserStatistics();
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+      
+      try {
+        await apiCall(`/users/${userId}`, { method: 'DELETE' });
+        showNotification('User deleted successfully!', 'success');
+        loadUsers();
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showNotification('Error deleting user', 'error');
+      }
+    }
+
+    let currentEditIndex = null;
+    async function openEdit(userId) {
+      currentEditIndex = userId;
+      const user = users.find(u => u._id === userId);
+      if (!user) return;
+
+      document.getElementById('editName').value = user.name;
+      document.getElementById('editEmail').value = user.email;
+      document.getElementById('editAccount').value = user.account;
+      document.getElementById('editBalance').value = user.balance || 0;
+      document.getElementById('editPicture').value = user.profilePicture || '';
+      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal').classList.add('flex');
+    }
+
+    function closeEdit() {
+      document.getElementById('editModal').classList.add('hidden');
+      currentEditIndex = null;
+    }
+
+    async function saveEdit() {
+      const name = document.getElementById('editName').value;
+      const email = document.getElementById('editEmail').value;
+      const account = document.getElementById('editAccount').value;
+      const balance = parseFloat(document.getElementById('editBalance').value) || 0;
+      const profilePicture = document.getElementById('editPicture').value || `https://via.placeholder.com/40/${getRandomColor()}/FFFFFF?text=${name.split(' ').map(n => n[0]).join('')}`;
+
+      // Validate inputs
+      if (!name || !email || !account) {
+        alert('Please fill in all required fields.');
+        return;
+      }
+
+      try {
+        await apiCall(`/users/${currentEditIndex}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            name,
+            email,
+            account,
+            profilePicture
+          })
+        });
+
+        showNotification('User updated successfully!', 'success');
+        loadUsers();
+      closeEdit();
+      } catch (error) {
+        console.error('Error updating user:', error);
+        showNotification('Error updating user', 'error');
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+      }`;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    function approveTransfer(transferId) {
+      const transferElement = document.querySelector(`[onclick="approveTransfer('${transferId}')"]`).closest('.border');
+      transferElement.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-semibold">Transfer Request #${transferId}</h3>
+            <p class="text-sm text-gray-600">Status: <span class="text-green-600 font-semibold">Approved</span></p>
+          </div>
+          <div class="text-green-600 font-semibold">✓ Approved</div>
+        </div>
+      `;
+      
+      // Add message to chat
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-right text-green-800"><span class="bg-green-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Transfer ${transferId} has been approved and processed.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function rejectTransfer(transferId) {
+      const transferElement = document.querySelector(`[onclick="rejectTransfer('${transferId}')"]`).closest('.border');
+      transferElement.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-semibold">Transfer Request #${transferId}</h3>
+            <p class="text-sm text-gray-600">Status: <span class="text-red-600 font-semibold">Rejected</span></p>
+          </div>
+          <div class="text-red-600 font-semibold">✗ Rejected</div>
+        </div>
+      `;
+      
+      // Add message to chat
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-right text-red-800"><span class="bg-red-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Transfer ${transferId} has been rejected. Please contact the user for more details.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Simulate incoming chat messages (in real app, this would be WebSocket)
+    function simulateIncomingMessage() {
+      if (!chatActive) return;
+      
+      const messages = [
+        "I have a question about my transfer status.",
+        "How long will the transfer take to complete?",
+        "Can I cancel the transfer?",
+        "Is there a fee for this transfer?",
+        "Thank you for your help!"
+      ];
+      
+      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>User:</strong> ${randomMessage}</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // --- Chat Management (Socket.io + Backend API) ---
+    let socket;
+    let activeChats = new Map(); // Store active chat sessions
+
+    // Initialize Socket.io connection
+    function initializeSocket() {
+      const admin = getAdminInfo();
+      if (!admin) return;
+
+      // Connect to Socket.io server
+      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://frosstbank-backend.onrender.com';
+      socket = io(backendUrl, {
+        auth: {
+          token: localStorage.getItem('jwtToken')
+        }
+      });
+
+      // Join admin room
+      socket.emit('join', { userId: 'admin' });
+
+      // Listen for chat notifications
+      socket.on('chatNotification', (notification) => {
+        handleChatNotification(notification);
+      });
+
+      // Listen for incoming messages
+      socket.on('message', (message) => {
+        handleIncomingMessage(message);
+      });
+
+      // Listen for connection status
+      socket.on('connect', () => {
+        console.log('Admin connected to chat server');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Admin disconnected from chat server');
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        console.log('Falling back to localStorage chat');
+      });
+    }
+
+    // Handle chat notifications from users
+    function handleChatNotification(notification) {
+      const { type, userId, userName, userAccount, transferId, timestamp } = notification;
+      
+      // Add to active chats
+      activeChats.set(userId, {
+        type,
+        userName,
+        userAccount,
+        transferId,
+        timestamp,
+        messages: []
+      });
+
+      // Update display
+      updateActiveChatsDisplay();
+
+      // Show notification
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-blue-800"><span class="bg-blue-100 px-3 py-2 rounded inline-block"><strong>System:</strong> New ${type} chat session started by ${userName}.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Show notification indicator
+      document.getElementById('chatNotification').classList.remove('hidden');
+      
+      // Show type-specific indicator
+      const indicatorMap = {
+        'signup': 'signupChatIndicator',
+        'dashboard': 'dashboardChatIndicator',
+        'livechat': 'liveChatIndicator',
+        'transfer': 'transferChatIndicator'
+      };
+      
+      const indicatorId = indicatorMap[type];
+      if (indicatorId) {
+        document.getElementById(indicatorId).classList.remove('hidden');
+      }
+    }
+
+    // Handle incoming messages
+    function handleIncomingMessage(message) {
+      const { from, content, timestamp } = message;
+      
+      // Add message to active chat
+      if (activeChats.has(from)) {
+        const chat = activeChats.get(from);
+        chat.messages.push({
+          from: 'user',
+          content,
+          timestamp
+        });
+        activeChats.set(from, chat);
+      }
+
+      // Display message in chat box
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>User:</strong> ${content}</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Show notification
+      document.getElementById('chatNotification').classList.remove('hidden');
+    }
+
+    // Update active chats display
+    function updateActiveChatsDisplay() {
+      const activeChatsDiv = document.getElementById('activeChats');
+      if (!activeChatsDiv) return;
+      
+      if (activeChats.size === 0) {
+        activeChatsDiv.innerHTML = '<p class="text-sm text-gray-500">No active chat sessions</p>';
+        return;
+      }
+      
+      const chatList = Array.from(activeChats.entries()).map(([userId, chat]) => {
+        const colorMap = {
+          'signup': 'blue',
+          'dashboard': 'green',
+          'livechat': 'purple',
+          'transfer': 'orange'
+        };
+        const color = colorMap[chat.type] || 'gray';
+        
+        return `
+          <div class="flex items-center justify-between p-2 bg-${color}-50 border border-${color}-200 rounded">
+            <div>
+              <span class="text-sm font-medium text-${color}-800">${chat.type.toUpperCase()} Chat</span>
+              <div class="text-xs text-gray-500">${chat.userName} (${chat.userAccount})</div>
+              ${chat.transferId ? `<div class="text-xs text-gray-400">Transfer: ${chat.transferId}</div>` : ''}
+            </div>
+            <span class="text-xs text-gray-500">${new Date(chat.timestamp).toLocaleTimeString()}</span>
+          </div>
+        `;
+      }).join('');
+      
+      activeChatsDiv.innerHTML = chatList;
+    }
+
+    // Check for all chat messages from different sources (fallback)
+    function checkForAllChatMessages() {
+      // Check sign-up messages
+      checkForSignupMessages();
+      
+      // Check dashboard messages
+      checkForDashboardMessages();
+      
+      // Check live chat messages
+      checkForLiveChatMessages();
+      
+      // Check transfer chat messages
+      checkForTransferChatMessages();
+    }
+
+    // Check for sign-up chat messages
+    function checkForSignupMessages() {
+      const newSignupMessage = localStorage.getItem('newSignupMessage');
+      const newSignupChat = localStorage.getItem('newSignupChat');
+      
+      if (newSignupChat === 'true') {
+        // New sign-up chat session started
+        const chatSession = JSON.parse(localStorage.getItem('currentSignupChat'));
+        const chatBox = document.getElementById('chatBox');
+        const msgHTML = `<div class="mb-2 text-left text-blue-800"><span class="bg-blue-100 px-3 py-2 rounded inline-block"><strong>System:</strong> New sign-up chat session started from sign-up page.</span></div>`;
+        chatBox.innerHTML += msgHTML;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Show notification and indicator
+        document.getElementById('chatNotification').classList.remove('hidden');
+        document.getElementById('signupChatIndicator').classList.remove('hidden');
+        chatActive = true;
+        
+        localStorage.removeItem('newSignupChat');
+      }
+      
+      if (newSignupMessage === 'true') {
+        // New message from sign-up page
+        const signupMessages = JSON.parse(localStorage.getItem('signupChatMessages') || '[]');
+        if (signupMessages.length > 0) {
+          const latestMessage = signupMessages[signupMessages.length - 1];
+          const chatBox = document.getElementById('chatBox');
+          const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>Sign-up User:</strong> ${latestMessage.message}</span></div>`;
+          chatBox.innerHTML += msgHTML;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          
+          // Show notification and indicator
+          document.getElementById('chatNotification').classList.remove('hidden');
+          document.getElementById('signupChatIndicator').classList.remove('hidden');
+          chatActive = true;
+        }
+        
+        localStorage.removeItem('newSignupMessage');
+      }
+    }
+
+    // Check for dashboard chat messages
+    function checkForDashboardMessages() {
+      const newDashboardMessage = localStorage.getItem('newDashboardMessage');
+      const newDashboardChat = localStorage.getItem('newDashboardChat');
+      
+      if (newDashboardChat === 'true') {
+        // New dashboard chat session started
+        const chatSession = JSON.parse(localStorage.getItem('currentDashboardChat'));
+        const chatBox = document.getElementById('chatBox');
+        const msgHTML = `<div class="mb-2 text-left text-green-800"><span class="bg-green-100 px-3 py-2 rounded inline-block"><strong>System:</strong> New dashboard chat session started.</span></div>`;
+        chatBox.innerHTML += msgHTML;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Show notification and indicator
+        document.getElementById('chatNotification').classList.remove('hidden');
+        document.getElementById('dashboardChatIndicator').classList.remove('hidden');
+        chatActive = true;
+        
+        localStorage.removeItem('newDashboardChat');
+      }
+      
+      if (newDashboardMessage === 'true') {
+        // New message from dashboard
+        const dashboardMessages = JSON.parse(localStorage.getItem('dashboardChatMessages') || '[]');
+        if (dashboardMessages.length > 0) {
+          const latestMessage = dashboardMessages[dashboardMessages.length - 1];
+          const chatBox = document.getElementById('chatBox');
+          const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>Dashboard User:</strong> ${latestMessage.message}</span></div>`;
+          chatBox.innerHTML += msgHTML;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          
+          // Show notification and indicator
+          document.getElementById('chatNotification').classList.remove('hidden');
+          document.getElementById('dashboardChatIndicator').classList.remove('hidden');
+          chatActive = true;
+        }
+        
+        localStorage.removeItem('newDashboardMessage');
+      }
+    }
+
+    // Check for live chat messages
+    function checkForLiveChatMessages() {
+      const newLiveChatMessage = localStorage.getItem('newLiveChatMessage');
+      const newLiveChat = localStorage.getItem('newLiveChat');
+      
+      if (newLiveChat === 'true') {
+        // New live chat session started
+        const chatSession = JSON.parse(localStorage.getItem('currentLiveChat'));
+        const chatBox = document.getElementById('chatBox');
+        const msgHTML = `<div class="mb-2 text-left text-purple-800"><span class="bg-purple-100 px-3 py-2 rounded inline-block"><strong>System:</strong> New live chat session started.</span></div>`;
+        chatBox.innerHTML += msgHTML;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Show notification and indicator
+        document.getElementById('chatNotification').classList.remove('hidden');
+        document.getElementById('liveChatIndicator').classList.remove('hidden');
+        chatActive = true;
+        
+        localStorage.removeItem('newLiveChat');
+      }
+      
+      if (newLiveChatMessage === 'true') {
+        // New message from live chat
+        const liveChatMessages = JSON.parse(localStorage.getItem('liveChatMessages') || '[]');
+        if (liveChatMessages.length > 0) {
+          const latestMessage = liveChatMessages[liveChatMessages.length - 1];
+          const chatBox = document.getElementById('chatBox');
+          const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>Live Chat User:</strong> ${latestMessage.message}</span></div>`;
+          chatBox.innerHTML += msgHTML;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          
+          // Show notification and indicator
+          document.getElementById('chatNotification').classList.remove('hidden');
+          document.getElementById('liveChatIndicator').classList.remove('hidden');
+          chatActive = true;
+        }
+        
+        localStorage.removeItem('newLiveChatMessage');
+      }
+    }
+
+    // Check for transfer chat messages
+    function checkForTransferChatMessages() {
+      const newTransferMessage = localStorage.getItem('newTransferMessage');
+      const newTransferChat = localStorage.getItem('newTransferChat');
+      
+      if (newTransferChat === 'true') {
+        // New transfer chat session started
+        const chatSession = JSON.parse(localStorage.getItem('currentTransferChat'));
+        const chatBox = document.getElementById('chatBox');
+        const msgHTML = `<div class="mb-2 text-left text-orange-800"><span class="bg-orange-100 px-3 py-2 rounded inline-block"><strong>System:</strong> New transfer chat session started.</span></div>`;
+        chatBox.innerHTML += msgHTML;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Show notification and indicator
+        document.getElementById('chatNotification').classList.remove('hidden');
+        document.getElementById('transferChatIndicator').classList.remove('hidden');
+        chatActive = true;
+        
+        localStorage.removeItem('newTransferChat');
+      }
+      
+      if (newTransferMessage === 'true') {
+        // New message from transfer chat
+        const transferMessages = JSON.parse(localStorage.getItem('transferChatMessages') || '[]');
+        if (transferMessages.length > 0) {
+          const latestMessage = transferMessages[transferMessages.length - 1];
+          const chatBox = document.getElementById('chatBox');
+          const msgHTML = `<div class="mb-2 text-left text-gray-800"><span class="bg-gray-100 px-3 py-2 rounded inline-block"><strong>Transfer User:</strong> ${latestMessage.message}</span></div>`;
+          chatBox.innerHTML += msgHTML;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          
+          // Show notification and indicator
+          document.getElementById('chatNotification').classList.remove('hidden');
+          document.getElementById('transferChatIndicator').classList.remove('hidden');
+          chatActive = true;
+        }
+        
+        localStorage.removeItem('newTransferMessage');
+      }
+    }
+
+    // Enhanced send message function to handle all chat sources
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-right text-indigo-800"><span class="bg-indigo-100 px-3 py-2 rounded inline-block"><strong>Admin:</strong> ${message}</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      
+      // Send message to all active chat sessions via Socket.io
+      if (socket && socket.connected) {
+        activeChats.forEach((chat, userId) => {
+          socket.emit('message', {
+            from: 'admin',
+            to: userId,
+            content: message,
+            timestamp: new Date().toISOString()
+          });
+        });
+      } else {
+        // Fallback to localStorage
+        const response = {
+          message: message,
+          timestamp: new Date().toISOString()
+        };
+        
+        if (localStorage.getItem('currentSignupChat')) localStorage.setItem('adminResponseToSignup', JSON.stringify(response));
+        if (localStorage.getItem('currentDashboardChat')) localStorage.setItem('adminResponseToDashboard', JSON.stringify(response));
+        if (localStorage.getItem('currentLiveChat')) localStorage.setItem('adminResponseToLiveChat', JSON.stringify(response));
+        if (localStorage.getItem('currentTransferChat')) localStorage.setItem('adminResponseToTransferChat', JSON.stringify(response));
+      }
+      
+      input.value = '';
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Test functions for chat
+    function testSignupChat() {
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-blue-800"><span class="bg-blue-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Simulating new sign-up chat session.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById('signupChatIndicator').classList.remove('hidden');
+      localStorage.setItem('newSignupChat', 'true');
+      localStorage.setItem('currentSignupChat', JSON.stringify({
+        userId: 'testUser123',
+        userName: 'Test User',
+        userEmail: 'test@example.com',
+        timestamp: new Date().toISOString()
+      }));
+      localStorage.setItem('signupChatMessages', JSON.stringify([
+        { message: 'Hello! I just signed up for an account.', timestamp: new Date().toISOString() },
+        { message: 'How can I help you today?', timestamp: new Date().toISOString() }
+      ]));
+      localStorage.setItem('newSignupMessage', 'true');
+      chatActive = true;
+    }
+
+    function testDashboardChat() {
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-green-800"><span class="bg-green-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Simulating new dashboard chat session.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById('dashboardChatIndicator').classList.remove('hidden');
+      localStorage.setItem('newDashboardChat', 'true');
+      localStorage.setItem('currentDashboardChat', JSON.stringify({
+        userId: 'testUser456',
+        userName: 'Test Dashboard User',
+        userEmail: 'dashboard@example.com',
+        timestamp: new Date().toISOString()
+      }));
+      localStorage.setItem('dashboardChatMessages', JSON.stringify([
+        { message: 'Hello from the dashboard!', timestamp: new Date().toISOString() },
+        { message: 'How can I assist you?', timestamp: new Date().toISOString() }
+      ]));
+      localStorage.setItem('newDashboardMessage', 'true');
+      chatActive = true;
+    }
+
+    function testLiveChat() {
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-purple-800"><span class="bg-purple-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Simulating new live chat session.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById('liveChatIndicator').classList.remove('hidden');
+      localStorage.setItem('newLiveChat', 'true');
+      localStorage.setItem('currentLiveChat', JSON.stringify({
+        userId: 'testUser789',
+        userName: 'Test Live User',
+        userEmail: 'live@example.com',
+        timestamp: new Date().toISOString()
+      }));
+      localStorage.setItem('liveChatMessages', JSON.stringify([
+        { message: 'Hello from the live chat!', timestamp: new Date().toISOString() },
+        { message: 'How can I help you?', timestamp: new Date().toISOString() }
+      ]));
+      localStorage.setItem('newLiveChatMessage', 'true');
+      chatActive = true;
+    }
+
+    function testTransferChat() {
+      const chatBox = document.getElementById('chatBox');
+      const msgHTML = `<div class="mb-2 text-left text-orange-800"><span class="bg-orange-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Simulating new transfer chat session.</span></div>`;
+      chatBox.innerHTML += msgHTML;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById('transferChatIndicator').classList.remove('hidden');
+      localStorage.setItem('newTransferChat', 'true');
+      localStorage.setItem('currentTransferChat', JSON.stringify({
+        userId: 'testUser101',
+        userName: 'Test Transfer User',
+        userEmail: 'transfer@example.com',
+        timestamp: new Date().toISOString()
+      }));
+      localStorage.setItem('transferChatMessages', JSON.stringify([
+        { message: 'Hello from the transfer chat!', timestamp: new Date().toISOString() },
+        { message: 'How can I help you?', timestamp: new Date().toISOString() }
+      ]));
+      localStorage.setItem('newTransferMessage', 'true');
+      chatActive = true;
+    }
+
+    // Function to clear all chat sessions
+    function clearAllChatSessions() {
+      localStorage.removeItem('currentSignupChat');
+      localStorage.removeItem('currentDashboardChat');
+      localStorage.removeItem('currentLiveChat');
+      localStorage.removeItem('currentTransferChat');
+      localStorage.removeItem('signupChatMessages');
+      localStorage.removeItem('dashboardChatMessages');
+      localStorage.removeItem('liveChatMessages');
+      localStorage.removeItem('transferChatMessages');
+      
+      // Hide all indicators
+      document.getElementById('signupChatIndicator').classList.add('hidden');
+      document.getElementById('dashboardChatIndicator').classList.add('hidden');
+      document.getElementById('liveChatIndicator').classList.add('hidden');
+      document.getElementById('transferChatIndicator').classList.add('hidden');
+      
+      // Update display
+      updateActiveChatsDisplay();
+    }
+
+    // Add clear button to the interface
+    document.addEventListener('DOMContentLoaded', function() {
+      const clearButton = document.createElement('button');
+      clearButton.textContent = 'Clear All Chats';
+      clearButton.className = 'bg-red-500 text-white px-3 py-1 rounded text-sm';
+      clearButton.onclick = clearAllChatSessions;
+      
+      const buttonContainer = document.querySelector('.mb-4.flex.space-x-2');
+      if (buttonContainer) {
+        buttonContainer.appendChild(clearButton);
+      }
+    });
+
+    // --- Transaction Management (Backend API) ---
+    async function renderTransactions(txList) {
+      const tbody = document.getElementById('txTable');
+      const noTxMessage = document.getElementById('noTxMessage');
+      if (!tbody) return;
+      if (!txList || txList.length === 0) {
+        tbody.innerHTML = '';
+        if (noTxMessage) noTxMessage.classList.remove('hidden');
+        return;
+      }
+      if (noTxMessage) noTxMessage.classList.add('hidden');
+      tbody.innerHTML = '';
+      txList.forEach((tx) => {
+        tbody.innerHTML += `
+          <tr>
+            <td class="p-2 font-mono">${tx.user ? tx.user.account : 'N/A'}</td>
+            <td class="p-2">${tx.date}</td>
+            <td class="p-2">${tx.time}</td>
+            <td class="p-2">${tx.description}</td>
+            <td class="p-2">${tx.category}</td>
+            <td class="p-2 font-bold ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}">${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td class="p-2"><span class="px-2 py-1 rounded text-xs ${tx.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</span></td>
+            <td class="p-2">
+              <button onclick="editTransaction('${tx._id}')" class="text-indigo-600 hover:underline mr-2">Edit</button>
+              <button onclick="deleteTransaction('${tx._id}')" class="text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Add transaction
+    document.getElementById('addTransactionForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const tx = {
+        userAccount: document.getElementById('txUserAccount').value.trim(),
+        date: document.getElementById('txDate').value,
+        time: document.getElementById('txTime').value,
+        description: document.getElementById('txDescription').value.trim(),
+        category: document.getElementById('txCategory').value.trim(),
+        amount: parseFloat(document.getElementById('txAmount').value),
+        status: document.getElementById('txStatus').value
+      };
+      if (!tx.userAccount || !tx.date || !tx.time || !tx.description || !tx.category || isNaN(tx.amount)) {
+        alert('Please fill all fields.');
+        return;
+      }
+
+      try {
+        // Find user by account number
+        const user = users.find(u => u.account === tx.userAccount);
+        if (!user) {
+          alert('User account not found.');
+          return;
+        }
+
+        await apiCall('/transactions', {
+          method: 'POST',
+          body: JSON.stringify({
+            user: user._id,
+            date: tx.date,
+            time: tx.time,
+            description: tx.description,
+            category: tx.category,
+            amount: tx.amount,
+            status: tx.status
+          })
+        });
+
+        showNotification('Transaction added!', 'success');
+        loadTransactions();
+        this.reset();
+      } catch (error) {
+        console.error('Error adding transaction:', error);
+        showNotification('Error adding transaction', 'error');
+      }
+    };
+
+    // Edit transaction
+    async function editTransaction(id) {
+      try {
+        const transactions = await apiCall('/transactions');
+        const tx = transactions.find(t => t._id === id);
+        if (!tx) return;
+
+        // Fill form with tx data
+        document.getElementById('txUserAccount').value = tx.user ? tx.user.account : '';
+        document.getElementById('txDate').value = tx.date;
+        document.getElementById('txTime').value = tx.time;
+        document.getElementById('txDescription').value = tx.description;
+        document.getElementById('txCategory').value = tx.category;
+        document.getElementById('txAmount').value = tx.amount;
+        document.getElementById('txStatus').value = tx.status;
+      } catch (error) {
+        console.error('Error loading transaction for edit:', error);
+      }
+    }
+
+    // Delete transaction
+    async function deleteTransaction(id) {
+      if (!confirm('Delete this transaction?')) return;
+      
+      try {
+        await apiCall(`/transactions/${id}`, { method: 'DELETE' });
+        showNotification('Transaction deleted!', 'success');
+        loadTransactions();
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        showNotification('Error deleting transaction', 'error');
+      }
+    }
+
+    // Filter transactions
+    function filterTransactions() {
+      const q = document.getElementById('txSearch').value.toLowerCase();
+      // This would need to be implemented on the backend for better performance
+      // For now, we'll filter client-side
+      loadTransactions().then(transactions => {
+        const filtered = transactions.filter(tx =>
+          (tx.user && tx.user.account && tx.user.account.toLowerCase().includes(q)) ||
+          (tx.description && tx.description.toLowerCase().includes(q)) ||
+          (tx.category && tx.category.toLowerCase().includes(q))
+        );
+        renderTransactions(filtered);
+      });
+    }
+
+    // Export transactions
+    async function exportTransactions() {
+      try {
+        const txs = await apiCall('/transactions');
+        const csv = 'Account,Date,Time,Description,Category,Amount,Status\n' +
+          txs.map(tx => `${tx.user ? tx.user.account : 'N/A'},${tx.date},${tx.time},${tx.description},${tx.category},${tx.amount},${tx.status}`).join('\n');
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transactions.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showNotification('Transactions exported!', 'success');
+      } catch (error) {
+        console.error('Error exporting transactions:', error);
+        showNotification('Error exporting transactions', 'error');
+      }
+    }
+
+    // Update user statistics
+    function updateUserStatistics() {
+      const totalUsers = users.length;
+      const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
+      const avgBalance = totalUsers > 0 ? totalBalance / totalUsers : 0;
+      const highBalanceUsers = users.filter(user => (user.balance || 0) > 10000).length;
+
+      const totalUsersEl = document.getElementById('totalUsers');
+      const totalBalanceEl = document.getElementById('totalBalance');
+      const avgBalanceEl = document.getElementById('avgBalance');
+      const highBalanceUsersEl = document.getElementById('highBalanceUsers');
+
+      if (totalUsersEl) totalUsersEl.textContent = totalUsers;
+      if (totalBalanceEl) totalBalanceEl.textContent = `$${totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (avgBalanceEl) avgBalanceEl.textContent = `$${avgBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (highBalanceUsersEl) highBalanceUsersEl.textContent = highBalanceUsers;
+    }
+
+    // Search and filter functionality
+    function filterUsers() {
+      const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+      const filteredUsers = users.filter(user => 
+        user.name.toLowerCase().includes(searchTerm) ||
+        user.email.toLowerCase().includes(searchTerm) ||
+        user.account.includes(searchTerm)
+      );
+      renderUsers(filteredUsers);
+    }
+
+    function sortUsers() {
+      const sortBy = document.getElementById('sortUsers').value;
+      const sortedUsers = [...users].sort((a, b) => {
+        switch(sortBy) {
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'balance':
+            return (b.balance || 0) - (a.balance || 0); // High to low
+          case 'account':
+            return a.account.localeCompare(b.account);
+          default:
+            return 0;
+        }
+      });
+      renderUsers(sortedUsers);
+    }
+
+    async function exportUsers() {
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + "Name,Email,Account,Balance\n"
+        + users.map(user => 
+            `"${user.name}","${user.email}","${user.account}","${user.balance || 0}"`
+          ).join("\n");
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "users_export.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showNotification('Users exported successfully!', 'success');
+    }
+
+    // Admin session management
+    function logout() {
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = 'login.html';
+      }
+    }
+  </script>
+
+</body>
+</html>

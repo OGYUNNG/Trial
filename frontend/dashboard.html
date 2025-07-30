@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Frosst Bank Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <div class="profile">
+      <img src="https://via.placeholder.com/60" alt="Profile" class="avatar" />
+      <div>
+        <h2>Account: <span class="normal-case">John Doe</span> <span class="account-id">16855894866</span> ✅</h2>
+      </div>
+    </div>
+    <div>
+    <h3 class="menu-title">Banking Menu</h3>
+    <p class="menu-subtitle">Select an option to continue</p>
+    </div>
+    <div class="grid">
+      <a href="index.html" class="card">🏠 Home</a>
+      <a href="activity.html" class="card">📈 Activity</a>
+      <a href="cards.html" class="card">💳 Cards</a>
+      <a href="transfer.html" class="card">📤 Transfer</a>
+      <a href="#" class="card">🌐 Int'l Wire</a>
+      <a href="depositpage.html" class="card">💰 Deposit</a>
+      <button class="card disabled" onclick="loanUnavailable()" disabled title="Loan service not available">🏦 Loan</button>
+      <a href="#" class="card">🧾 IRS Refund</a>
+      <a href="#" class="card">⚙️ Settings</a>
+      <a href="contact.html" class="card">📞 Support</a>
+      <a href="index.html" class="card logout">🚪 Logout</a>
+    </div>
+  </div>
+
+  <!-- Live Chat -->
+  <div class="chat-container" id="chat-container">
+    <div class="chat-header" onclick="toggleChat()">💬 Chat with us</div>
+    <div class="chat-box" id="chat-box">
+      <div class="chat-messages" id="chat-messages">
+        <div class="bot-message">Hi there! 👋<br>How can we help you today?</div>
+      </div>
+      <input type="text" id="chat-input" placeholder="Type your message..." onkeydown="handleChat(event)" />
+    </div>
+  </div>
+
+  <script>
+    // Socket.io connection
+    let socket;
+    let currentUser;
+
+    // Check if user is authenticated
+    function checkAuth() {
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return token;
+    }
+
+    // Get user info from JWT token
+    function getUserInfo() {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return JSON.parse(userInfo);
+    }
+
+    // Initialize Socket.io connection
+    function initializeSocket() {
+      const user = getUserInfo();
+      if (!user) return;
+
+      currentUser = user;
+      
+      // Connect to Socket.io server
+      socket = io('http://localhost:4000', {
+        auth: {
+          token: localStorage.getItem('jwtToken')
+        }
+      });
+
+      // Join user's personal room
+      socket.emit('join', { userId: user._id });
+
+      // Listen for incoming messages
+      socket.on('message', (message) => {
+        if (message.from !== user._id) {
+          addMessage(message.content, 'bot');
+        }
+      });
+
+      // Listen for connection status
+      socket.on('connect', () => {
+        console.log('Connected to chat server');
+      });
+
+      socket.on('disconnect', () => {
+        console.log('Disconnected from chat server');
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        // Fallback to localStorage if Socket.io fails
+        console.log('Falling back to localStorage chat');
+      });
+    }
+
+    // API helper function
+    async function apiCall(endpoint, options = {}) {
+      const token = checkAuth();
+      if (!token) return null;
+
+      const response = await fetch(`http://localhost:4000/api${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = 'login.html';
+        return null;
+      }
+
+      return response.json();
+    }
+
+    // Render user profile from backend data
+    function renderUserProfile() {
+      const user = getUserInfo();
+      if (!user) return;
+
+      document.querySelector('.profile h2').innerHTML = `Account: <span class="normal-case">${user.name}</span> <span class="account-id">${user.account}</span> ✅`;
+    }
+
+    function loanUnavailable() {
+      alert("🚫 Loan service is not available at the moment. Please try again later.");
+    }
+
+    function toggleChat() {
+      const chatBox = document.getElementById("chat-box");
+      chatBox.style.display = chatBox.style.display === "flex" ? "none" : "flex";
+      
+      // Notify admin when chat is opened
+      if (chatBox.style.display === "flex") {
+        notifyAdminOfDashboardChat();
+      }
+    }
+
+    function handleChat(event) {
+      if (event.key === "Enter") {
+        const input = document.getElementById("chat-input");
+        const message = input.value.trim();
+        if (message !== "") {
+          addMessage(message, "user");
+          
+          // Send message via Socket.io
+          if (socket && socket.connected) {
+            socket.emit('message', {
+              from: currentUser._id,
+              to: 'admin', // Send to admin
+              content: message,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            // Fallback to localStorage
+            sendMessageToAdmin(message, 'dashboard');
+          }
+          
+          input.value = "";
+        }
+      }
+    }
+
+    function addMessage(text, type) {
+      const msg = document.createElement("div");
+      msg.className = type + "-message";
+      msg.textContent = text;
+      document.getElementById("chat-messages").appendChild(msg);
+      
+      // Scroll to bottom
+      const chatMessages = document.getElementById("chat-messages");
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function notifyAdminOfDashboardChat() {
+      const user = getUserInfo();
+      if (!user) return;
+
+      // Send notification to admin via Socket.io
+      if (socket && socket.connected) {
+        socket.emit('chatNotification', {
+          type: 'dashboard',
+          userId: user._id,
+          userName: user.name,
+          userAccount: user.account,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        // Fallback to localStorage
+        const chatSession = {
+          id: 'dashboard-' + Date.now(),
+          source: 'dashboard',
+          timestamp: new Date().toISOString(),
+          status: 'active',
+          user: user.name,
+          account: user.account
+        };
+        localStorage.setItem('currentDashboardChat', JSON.stringify(chatSession));
+        localStorage.setItem('newDashboardChat', 'true');
+      }
+    }
+
+    // Fallback localStorage functions (for when Socket.io is not available)
+    function sendMessageToAdmin(message, source) {
+      const chatMessages = JSON.parse(localStorage.getItem('dashboardChatMessages') || '[]');
+      chatMessages.push({
+        from: 'user',
+        message: message,
+        timestamp: new Date().toISOString(),
+        source: source
+      });
+      localStorage.setItem('dashboardChatMessages', JSON.stringify(chatMessages));
+      localStorage.setItem('newDashboardMessage', 'true');
+    }
+
+    // Listen for admin responses (fallback)
+    function checkForAdminResponse() {
+      const adminResponse = localStorage.getItem('adminResponseToDashboard');
+      if (adminResponse) {
+        const response = JSON.parse(adminResponse);
+        addMessage(response.message, "bot");
+        localStorage.removeItem('adminResponseToDashboard');
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      renderUserProfile();
+      initializeSocket();
+      
+      // Check for admin responses every 2 seconds (fallback)
+      setInterval(checkForAdminResponse, 2000);
+    });
+  </script>
+</body>
+</html>

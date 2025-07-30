@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer - Frosst Bank</title>
+    <link rel="stylesheet" href="transfer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">FrosstBank</div>
+            <div class="user-menu">
+                <div class="notification-icon">🔔</div>
+                <div class="user-profile">👤</div>
+            </div>
+        </header>
+
+        <main class="transfer-container">
+            <div class="transfer-header">
+                <h1>Transfer Funds</h1>
+                <div class="transfer-steps">
+                    <div class="step active" id="step1">1. Details</div>
+                    <div class="step" id="step2">2. Review</div>
+                    <div class="step" id="step3">3. Confirm</div>
+                </div>
+            </div>
+
+            <!-- Transfer Form -->
+            <div class="transfer-form-container" id="transferForm">
+                <form class="transfer-form">
+                    <div class="form-section">
+                        <h2 class="section-title">From Account</h2>
+                        <div class="account-selector">
+                            <div class="account-option active">
+                                <div class="account-type">Primary Checking</div>
+                                <div class="account-number">•••• 4567</div>
+                                <div class="account-balance">$8,245.50</div>
+                            </div>
+                            <div class="account-option">
+                                <div class="account-type">Savings</div>
+                                <div class="account-number">•••• 8910</div>
+                                <div class="account-balance">$12,100.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2 class="section-title">To Account</h2>
+                        <div class="transfer-type-tabs">
+                            <button type="button" class="tab-btn active" data-tab="my-accounts">My Accounts</button>
+                            <button type="button" class="tab-btn" data-tab="other-bank">Other Bank</button>
+                            <button type="button" class="tab-btn" data-tab="international">International</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="recipient">Recipient</label>
+                            <select id="recipient" class="form-control">
+                                <option value="">Select recipient</option>
+                                <option value="1">John Smith (•••• 3456)</option>
+                                <option value="2">Sarah Johnson (•••• 7890)</option>
+                                <option value="3">Add new recipient</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="bank-selection" style="display: none;">
+                            <label for="bank-name">Select Bank</label>
+                            <select id="bank-name" class="form-control">
+                                <option value="">Select a bank</option>
+                                <option value="chase">Chase Bank</option>
+                                <option value="bankofamerica">Bank of America</option>
+                                <option value="wellsfargo">Wells Fargo</option>
+                                <option value="citibank">Citibank</option>
+                                <option value="usbank">U.S. Bank</option>
+                                <option value="pnc">PNC Bank</option>
+                                <option value="capitalone">Capital One</option>
+                                <option value="tdbank">TD Bank</option>
+                                <option value="bbt">BB&T</option>
+                                <option value="suntrust">SunTrust</option>
+                                <option value="regions">Regions Bank</option>
+                                <option value="keybank">KeyBank</option>
+                                <option value="fifththird">Fifth Third Bank</option>
+                                <option value="huntington">Huntington Bank</option>
+                                <option value="citizens">Citizens Bank</option>
+                                <option value="comerica">Comerica Bank</option>
+                                <option value="mbt">M&T Bank</option>
+                                <option value="bmo">BMO Harris Bank</option>
+                                <option value="ally">Ally Bank</option>
+                                <option value="discover">Discover Bank</option>
+                                <option value="americanexpress">American Express Bank</option>
+                                <option value="goldmansachs">Goldman Sachs Bank</option>
+                                <option value="morganstanley">Morgan Stanley Bank</option>
+                                <option value="other">Other Bank</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="account-number">Account Number</label>
+                            <input type="text" id="account-number" class="form-control" placeholder="Enter account number">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="routing-number">Routing Number</label>
+                            <input type="text" id="routing-number" class="form-control" placeholder="Enter routing number">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h2 class="section-title">Transfer Details</h2>
+                        <div class="form-group">
+                            <label for="amount">Amount</label>
+                            <div class="amount-input">
+                                <span class="currency">$</span>
+                                <input type="number" id="amount" class="form-control" placeholder="0.00">
+                            </div>
+                            <div class="quick-amounts">
+                                <button type="button" class="quick-amount">$100</button>
+                                <button type="button" class="quick-amount">$500</button>
+                                <button type="button" class="quick-amount">$1,000</button>
+                                <button type="button" class="quick-amount">Other</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date">Transfer Date</label>
+                            <select id="date" class="form-control">
+                                <option value="now">Transfer now</option>
+                                <option value="later">Schedule for later</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="memo">Memo (Optional)</label>
+                            <input type="text" id="memo" class="form-control" placeholder="e.g. Rent payment">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="dashboard.html"><button type="button" class="btn btn-outline">Cancel</button></a>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </div>
+                </form>
+
+                <div class="transfer-summary">
+                    <h3 class="summary-title">Transfer Summary</h3>
+                    <div class="summary-item">
+                        <span class="summary-label">From:</span>
+                        <span class="summary-value">Primary Checking •••• 4567</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">To:</span>
+                        <span class="summary-value">John Smith •••• 3456</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Amount:</span>
+                        <span class="summary-value">$0.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Date:</span>
+                        <span class="summary-value">Today</span>
+                    </div>
+                    <div class="summary-item fee">
+                        <span class="summary-label">Fee:</span>
+                        <span class="summary-value">$0.00</span>
+                    </div>
+                    <div class="summary-total">
+                        <span class="total-label">Total:</span>
+                        <span class="total-value">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Step -->
+            <div class="review-container" id="reviewStep" style="display: none;">
+                <div class="review-content">
+                    <h2>Review Transfer</h2>
+                    <div class="review-details">
+                        <div class="review-item">
+                            <span class="review-label">From Account:</span>
+                            <span class="review-value" id="reviewFrom">Primary Checking •••• 4567</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">To Account:</span>
+                            <span class="review-value" id="reviewTo">John Smith •••• 3456</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Amount:</span>
+                            <span class="review-value" id="reviewAmount">$0.00</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Date:</span>
+                            <span class="review-value" id="reviewDate">Today</span>
+                        </div>
+                        <div class="review-item">
+                            <span class="review-label">Memo:</span>
+                            <span class="review-value" id="reviewMemo">-</span>
+                        </div>
+                    </div>
+                    <div class="review-actions">
+                        <button type="button" class="btn btn-outline" onclick="goBackToForm()">Back</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmTransfer()">Confirm Transfer</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Transfer Status -->
+            <div class="pending-container" id="pendingStep" style="display: none;">
+                <div class="pending-content">
+                    <div class="pending-icon">⏳</div>
+                    <h2>Transfer Pending</h2>
+                    <p>Your transfer is being processed. You can track the status below.</p>
+                    
+                    <div class="transfer-status">
+                        <div class="status-item active">
+                            <div class="status-dot"></div>
+                            <span>Transfer Submitted</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-dot"></div>
+                            <span>Processing</span>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-dot"></div>
+                            <span>Completed</span>
+                        </div>
+                    </div>
+
+                    <div class="transfer-details-pending">
+                        <div class="detail-item">
+                            <span class="detail-label">Transfer ID:</span>
+                            <span class="detail-value" id="transferId">TRX-2025-001</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Estimated Completion:</span>
+                            <span class="detail-value">1-2 business days</span>
+                        </div>
+                    </div>
+
+                    <div class="live-chat-section">
+                        <h3>Need Help? Chat with Support</h3>
+                        <div class="chat-container">
+                            <div class="chat-messages" id="chatMessages">
+                                <div class="message admin">
+                                    <div class="message-content">
+                                        <strong>Support Agent:</strong> Hello! I'm here to help you with your transfer. How can I assist you today?
+                                    </div>
+                                    <div class="message-time">Just now</div>
+                                </div>
+                            </div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chatInput" placeholder="Type your message..." class="chat-input">
+                                <button onclick="sendChatMessage()" class="chat-send-btn">Send</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pending-actions">
+                        <button type="button" class="btn btn-outline" onclick="goToDashboard()">Back to Dashboard</button>
+                        <button type="button" class="btn btn-primary" onclick="viewTransferHistory()">View Transfer History</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-links">
+                <a href="contact.html" class="footer-link">Contact Support</a>
+                <a href="FAQ.index.html" class="footer-link">FAQs</a>
+                <a href="termsofuse.html" class="footer-link">Terms & Conditions</a>
+                
+            </div>
+            <p>© 2025 FroostBank. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="transfer.js"></script>
+</body>
+</html>

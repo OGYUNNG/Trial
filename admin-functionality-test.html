@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Functionality Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #4F46E5; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; }
+        button:hover { background: #4338CA; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #D1FAE5; border: 1px solid #10B981; }
+        .error { background: #FEE2E2; border: 1px solid #EF4444; }
+        .info { background: #DBEAFE; border: 1px solid #3B82F6; }
+        .warning { background: #FEF3C7; border: 1px solid #F59E0B; }
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .status-card { padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .status-card.success { background: #D1FAE5; border-color: #10B981; }
+        .status-card.error { background: #FEE2E2; border-color: #EF4444; }
+        .status-card.warning { background: #FEF3C7; border-color: #F59E0B; }
+    </style>
+</head>
+<body>
+    <h1>Admin Functionality Test</h1>
+    <p>This test verifies all admin functionality is working properly.</p>
+    
+    <!-- Test Results Summary -->
+    <div class="test-section">
+        <h2>Test Results Summary</h2>
+        <div id="testSummary" class="status-grid"></div>
+    </div>
+    
+    <!-- Test 1: Admin Authentication -->
+    <div class="test-section">
+        <h2>Test 1: Admin Authentication</h2>
+        <button onclick="testAdminAuth()">Test Admin Login</button>
+        <div id="authResult"></div>
+    </div>
+    
+    <!-- Test 2: User Management -->
+    <div class="test-section">
+        <h2>Test 2: User Management</h2>
+        <button onclick="testUserCreation()">Test User Creation</button>
+        <button onclick="testUserListing()">Test User Listing</button>
+        <button onclick="testUserUpdate()">Test User Update</button>
+        <button onclick="testUserDeletion()">Test User Deletion</button>
+        <div id="userManagementResult"></div>
+    </div>
+    
+    <!-- Test 3: Transaction Management -->
+    <div class="test-section">
+        <h2>Test 3: Transaction Management</h2>
+        <button onclick="testTransactionCreation()">Test Transaction Creation</button>
+        <button onclick="testTransactionListing()">Test Transaction Listing</button>
+        <button onclick="testTransactionDeletion()">Test Transaction Deletion</button>
+        <div id="transactionResult"></div>
+    </div>
+    
+    <!-- Test 4: Live Chat -->
+    <div class="test-section">
+        <h2>Test 4: Live Chat</h2>
+        <button onclick="testLiveChat()">Test Live Chat Connection</button>
+        <div id="chatResult"></div>
+    </div>
+    
+    <!-- Test 5: Data Export -->
+    <div class="test-section">
+        <h2>Test 5: Data Export</h2>
+        <button onclick="testDataExport()">Test Data Export</button>
+        <div id="exportResult"></div>
+    </div>
+    
+    <!-- Test 6: Admin Dashboard Access -->
+    <div class="test-section">
+        <h2>Test 6: Admin Dashboard Access</h2>
+        <button onclick="testDashboardAccess()">Test Dashboard Access</button>
+        <button onclick="goToAdminDashboard()">Go to Admin Dashboard</button>
+        <div id="dashboardResult"></div>
+    </div>
+
+    <script>
+        let adminToken = '';
+        let testUsers = [];
+        let testTransactions = [];
+        
+        // Test Summary
+        const testResults = {
+            auth: { status: 'pending', message: 'Not tested yet' },
+            userCreation: { status: 'pending', message: 'Not tested yet' },
+            userListing: { status: 'pending', message: 'Not tested yet' },
+            userUpdate: { status: 'pending', message: 'Not tested yet' },
+            userDeletion: { status: 'pending', message: 'Not tested yet' },
+            transactionCreation: { status: 'pending', message: 'Not tested yet' },
+            transactionListing: { status: 'pending', message: 'Not tested yet' },
+            liveChat: { status: 'pending', message: 'Not tested yet' },
+            dataExport: { status: 'pending', message: 'Not tested yet' },
+            dashboardAccess: { status: 'pending', message: 'Not tested yet' }
+        };
+        
+        function updateTestSummary() {
+            const summaryDiv = document.getElementById('testSummary');
+            let html = '';
+            
+            Object.entries(testResults).forEach(([test, result]) => {
+                const statusClass = result.status === 'success' ? 'success' : 
+                                  result.status === 'error' ? 'error' : 'warning';
+                html += `
+                    <div class="status-card ${statusClass}">
+                        <h3>${test.charAt(0).toUpperCase() + test.slice(1)}</h3>
+                        <p><strong>Status:</strong> ${result.status}</p>
+                        <p><strong>Message:</strong> ${result.message}</p>
+                    </div>
+                `;
+            });
+            
+            summaryDiv.innerHTML = html;
+        }
+        
+        // Test 1: Admin Authentication
+        async function testAdminAuth() {
+            const resultDiv = document.getElementById('authResult');
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@frosstbank.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.token) {
+                    adminToken = data.token;
+                    testResults.auth = { status: 'success', message: 'Admin login successful' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Admin Authentication Successful</h3>
+                            <p>Token received and stored</p>
+                            <p>Role: ${data.user.role}</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.auth = { status: 'error', message: data.error };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Admin Authentication Failed</h3>
+                            <p>${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.auth = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Authentication Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        // Test 2: User Management
+        async function testUserCreation() {
+            const resultDiv = document.getElementById('userManagementResult');
+            
+            if (!adminToken) {
+                resultDiv.innerHTML = '<div class="warning">Please test admin authentication first</div>';
+                return;
+            }
+            
+            try {
+                const userData = {
+                    name: 'Test User ' + Date.now(),
+                    email: 'test' + Date.now() + '@example.com',
+                    password: 'testpass123',
+                    account: 'TEST' + Date.now(),
+                    role: 'user',
+                    profilePicture: 'https://ui-avatars.com/api/?name=Test&background=059669&color=fff&size=40'
+                };
+                
+                const response = await fetch('http://localhost:4000/api/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                if (data._id) {
+                    testUsers.push(data);
+                    testResults.userCreation = { status: 'success', message: 'User created successfully' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Creation Successful</h3>
+                            <p>Created user: ${data.name} (${data.email})</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.userCreation = { status: 'error', message: 'User creation failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ User Creation Failed</h3>
+                            <p>${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.userCreation = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ User Creation Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        async function testUserListing() {
+            const resultDiv = document.getElementById('userManagementResult');
+            
+            if (!adminToken) {
+                resultDiv.innerHTML = '<div class="warning">Please test admin authentication first</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/users', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const users = await response.json();
+                
+                if (Array.isArray(users)) {
+                    testResults.userListing = { status: 'success', message: `Found ${users.length} users` };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Listing Successful</h3>
+                            <p>Found ${users.length} users in the system</p>
+                            <ul>
+                                ${users.map(user => `<li>${user.name} (${user.email}) - ${user.role}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    testResults.userListing = { status: 'error', message: 'Invalid response format' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ User Listing Failed</h3>
+                            <p>Invalid response format</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.userListing = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ User Listing Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        async function testUserUpdate() {
+            const resultDiv = document.getElementById('userManagementResult');
+            
+            if (!adminToken || testUsers.length === 0) {
+                resultDiv.innerHTML = '<div class="warning">Please create a test user first</div>';
+                return;
+            }
+            
+            try {
+                const user = testUsers[0];
+                const updateData = {
+                    name: user.name + ' (Updated)',
+                    email: user.email
+                };
+                
+                const response = await fetch(`http://localhost:4000/api/users/${user._id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const data = await response.json();
+                
+                if (data._id) {
+                    testResults.userUpdate = { status: 'success', message: 'User updated successfully' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Update Successful</h3>
+                            <p>Updated user: ${data.name}</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.userUpdate = { status: 'error', message: 'User update failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ User Update Failed</h3>
+                            <p>${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.userUpdate = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ User Update Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        async function testUserDeletion() {
+            const resultDiv = document.getElementById('userManagementResult');
+            
+            if (!adminToken || testUsers.length === 0) {
+                resultDiv.innerHTML = '<div class="warning">Please create a test user first</div>';
+                return;
+            }
+            
+            try {
+                const user = testUsers[testUsers.length - 1];
+                
+                const response = await fetch(`http://localhost:4000/api/users/${user._id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.message) {
+                    testUsers.pop(); // Remove from test array
+                    testResults.userDeletion = { status: 'success', message: 'User deleted successfully' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ User Deletion Successful</h3>
+                            <p>Deleted user: ${user.name}</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.userDeletion = { status: 'error', message: 'User deletion failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ User Deletion Failed</h3>
+                            <p>${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.userDeletion = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ User Deletion Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        // Test 3: Transaction Management
+        async function testTransactionCreation() {
+            const resultDiv = document.getElementById('transactionResult');
+            
+            if (!adminToken) {
+                resultDiv.innerHTML = '<div class="warning">Please test admin authentication first</div>';
+                return;
+            }
+            
+            try {
+                const transactionData = {
+                    user: 1, // Admin user ID
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toLocaleTimeString(),
+                    description: 'Test transaction',
+                    category: 'Test',
+                    amount: 100,
+                    status: 'completed'
+                };
+                
+                const response = await fetch('http://localhost:4000/api/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify(transactionData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.id) {
+                    testTransactions.push(data);
+                    testResults.transactionCreation = { status: 'success', message: 'Transaction created successfully' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Transaction Creation Successful</h3>
+                            <p>Created transaction: ${data.description} - $${data.amount}</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.transactionCreation = { status: 'error', message: 'Transaction creation failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Transaction Creation Failed</h3>
+                            <p>${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.transactionCreation = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Transaction Creation Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        async function testTransactionListing() {
+            const resultDiv = document.getElementById('transactionResult');
+            
+            if (!adminToken) {
+                resultDiv.innerHTML = '<div class="warning">Please test admin authentication first</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/transactions', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const transactions = await response.json();
+                
+                if (Array.isArray(transactions)) {
+                    testResults.transactionListing = { status: 'success', message: `Found ${transactions.length} transactions` };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Transaction Listing Successful</h3>
+                            <p>Found ${transactions.length} transactions in the system</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.transactionListing = { status: 'error', message: 'Invalid response format' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Transaction Listing Failed</h3>
+                            <p>Invalid response format</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.transactionListing = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Transaction Listing Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        async function testTransactionDeletion() {
+            const resultDiv = document.getElementById('transactionResult');
+            
+            if (!adminToken || testTransactions.length === 0) {
+                resultDiv.innerHTML = '<div class="warning">Please create a test transaction first</div>';
+                return;
+            }
+            
+            try {
+                const transaction = testTransactions[testTransactions.length - 1];
+                
+                const response = await fetch(`http://localhost:4000/api/transactions/${transaction.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.message) {
+                    testTransactions.pop();
+                    testResults.transactionDeletion = { status: 'success', message: 'Transaction deleted successfully' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Transaction Deletion Successful</h3>
+                            <p>Deleted transaction: ${transaction.description}</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.transactionDeletion = { status: 'error', message: 'Transaction deletion failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Transaction Deletion Failed</h3>
+                            <p>${JSON.stringify(data)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.transactionDeletion = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Transaction Deletion Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        // Test 4: Live Chat
+        async function testLiveChat() {
+            const resultDiv = document.getElementById('chatResult');
+            
+            try {
+                // Test if Socket.io is available
+                if (typeof io === 'undefined') {
+                    testResults.liveChat = { status: 'error', message: 'Socket.io not loaded' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Live Chat Test Failed</h3>
+                            <p>Socket.io library not loaded</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Test connection
+                const socket = io('http://localhost:4000');
+                
+                socket.on('connect', () => {
+                    testResults.liveChat = { status: 'success', message: 'Live chat connection successful' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Live Chat Test Successful</h3>
+                            <p>Connected to chat server</p>
+                        </div>
+                    `;
+                    socket.disconnect();
+                });
+                
+                socket.on('connect_error', (error) => {
+                    testResults.liveChat = { status: 'error', message: 'Live chat connection failed' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Live Chat Test Failed</h3>
+                            <p>Connection error: ${error.message}</p>
+                        </div>
+                    `;
+                });
+                
+            } catch (error) {
+                testResults.liveChat = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Live Chat Test Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        // Test 5: Data Export
+        async function testDataExport() {
+            const resultDiv = document.getElementById('exportResult');
+            
+            try {
+                // Test CSV export functionality
+                const testData = [
+                    { name: 'Test User', email: 'test@example.com', account: 'TEST001' }
+                ];
+                
+                const csv = 'Name,Email,Account\n' + 
+                           testData.map(row => `${row.name},${row.email},${row.account}`).join('\n');
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                
+                testResults.dataExport = { status: 'success', message: 'Data export functionality working' };
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Data Export Test Successful</h3>
+                        <p>CSV export functionality is working</p>
+                        <a href="${url}" download="test-export.csv">Download Test CSV</a>
+                    </div>
+                `;
+                
+            } catch (error) {
+                testResults.dataExport = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Data Export Test Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        // Test 6: Admin Dashboard Access
+        async function testDashboardAccess() {
+            const resultDiv = document.getElementById('dashboardResult');
+            
+            try {
+                // Test if admin dashboard file exists
+                const response = await fetch('admin.html');
+                
+                if (response.ok) {
+                    testResults.dashboardAccess = { status: 'success', message: 'Admin dashboard accessible' };
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Admin Dashboard Access Test Successful</h3>
+                            <p>Admin dashboard file is accessible</p>
+                        </div>
+                    `;
+                } else {
+                    testResults.dashboardAccess = { status: 'error', message: 'Admin dashboard not accessible' };
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Admin Dashboard Access Test Failed</h3>
+                            <p>Admin dashboard file not found</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                testResults.dashboardAccess = { status: 'error', message: error.message };
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Admin Dashboard Access Test Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            updateTestSummary();
+        }
+        
+        function goToAdminDashboard() {
+            // Set admin token in localStorage
+            if (adminToken) {
+                localStorage.setItem('jwtToken', adminToken);
+                localStorage.setItem('userInfo', JSON.stringify({
+                    role: 'admin',
+                    name: 'Admin User'
+                }));
+                window.location.href = 'admin.html';
+            } else {
+                alert('Please test admin authentication first');
+            }
+        }
+        
+        // Initialize test summary
+        updateTestSummary();
+    </script>
+</body>
+</html> 

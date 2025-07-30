@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FrosstBank | Card Management</title>
+    <link rel="stylesheet" href="cards.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Frosst<span>Bank</span></div>
+            <div class="user-menu">
+                <div class="notification-icon">🔔</div>
+                <div class="user-profile">👤</div>
+            </div>
+        </header>
+
+        <div class="card-section">
+            <div class="card-container">
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="card-type">VISA</div>
+                            <div class="card-number">•••• •••• •••• 1234</div>
+                            <div class="card-details">
+                                <div>
+                                    <div class="card-expiry">EXPIRY DATE</div>
+                                    <div>12/25</div>
+                                </div>
+                                <div>
+                                    <div class="card-name">CARD HOLDER</div>
+                                    <div>JOHN DOE</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-back">
+                            <div class="card-stripe"></div>
+                            <div class="card-cvv">CVV •••</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-primary">Freeze Card</button>
+                    <button class="btn btn-outline">Virtual Card</button>
+                </div>
+            </div>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Available Balance</div>
+                    <div class="stat-value">$5,250.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Spent this month</div>
+                    <div class="stat-value">$1,200.00</div>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Credit Limit</div>
+                    <div class="stat-value">$10,000.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="transactions">
+            <div class="section-header">
+                <h2 class="section-title">Recent Transactions</h2>
+                <div class="filter-options">
+                    <button class="filter-btn active">All</button>
+                    <button class="filter-btn">Income</button>
+                    <button class="filter-btn">Expenses</button>
+                </div>
+            </div>
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Merchant</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Jul 20</td>
+                        <td>
+                            <div class="transaction-merchant">
+                                <div class="merchant-icon">🛒</div>
+                                <div>Amazon</div>
+                            </div>
+                        </td>
+                        <td class="transaction-amount negative">-$49.99</td>
+                        <td><span class="status-badge status-completed">Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>Jul 18</td>
+                        <td>
+                            <div class="transaction-merchant">
+                                <div class="merchant-icon">☕</div>
+                                <div>Starbucks</div>
+                            </div>
+                        </td>
+                        <td class="transaction-amount negative">-$5.75</td>
+                        <td><span class="status-badge status-completed">Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>Jul 15</td>
+                        <td>
+                            <div class="transaction-merchant">
+                                <div class="merchant-icon">💰</div>
+                                <div>Salary Deposit</div>
+                            </div>
+                        </td>
+                        <td class="transaction-amount positive">+$3,000.00</td>
+                        <td><span class="status-badge status-completed">Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>Jul 10</td>
+                        <td>
+                            <div class="transaction-merchant">
+                                <div class="merchant-icon">🎬</div>
+                                <div>Netflix Subscription</div>
+                            </div>
+                        </td>
+                        <td class="transaction-amount negative">-$14.99</td>
+                        <td><span class="status-badge status-pending">Pending</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="view-all">
+                <button class="view-all-btn">View All Transactions →</button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-panel">
+                <h3 class="control-title">Spending Limits</h3>
+                <div class="control-group">
+                    <div class="control-item">
+                        <span class="control-label">Daily Limit</span>
+                        <span>$1,000.00</span>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-label">International Usage</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="control-panel">
+                <h3 class="control-title">Security Settings</h3>
+                <div class="control-group">
+                    <div class="control-item">
+                        <span class="control-label">SMS Alerts</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-label">Online Payments</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="control-item">
+                        <span class="control-label">Contactless Payments</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="support-actions">
+                    <div class="support-item">
+                        <span class="support-icon">⚠️</span>
+                        <span class="support-text">Lost/Stolen Card? <a href="#" class="support-link">Report Immediately</a></span>
+                    </div>
+                    <div class="support-item">
+                        <span class="support-icon">💳</span>
+                        <span class="support-text">Need a new card? <a href="#" class="support-link">Request Replacement</a></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-links">
+                <a href="livechat.html" class="footer-link">Contact Support</a>
+                <a href="FAQ.index.html" class="footer-link">FAQs</a>
+                <a href="termsofuse.html" class="footer-link">Terms & Conditions</a>
+        
+            </div>
+            <p>© 2025 FrosstBank. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="cards.js"></script>
+</body>
+</html>
