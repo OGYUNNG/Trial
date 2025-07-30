@@ -6,7 +6,9 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 const cors = require('cors');
-// Database configuration removed - using backend server instead
+// 2. set up cors
+app.use(cors());
+
 
 // Middleware to serve static files
 
@@ -16,12 +18,6 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // Login route
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-
-  // Dummy users
-  const users = [
-    { username: 'user123', password: 'pass123', role: 'user' },
-    { username: 'admin123', password: 'adminpass', role: 'admin' }
-  ];
 
   const user = users.find(u => u.username === username && u.password === password);
 
