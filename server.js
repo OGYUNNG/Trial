@@ -7,7 +7,7 @@ const app = express();
 const PORT = 3000;
 // Database configuration removed - using backend server instead
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://trial-2-5mv8.onrender.com); // Replace with your frontend origin
+  res.setHeader('Access-Control-Allow-Origin', 'https://trial-2-5mv8.onrender'.com); // Replace with your frontend origin
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
