@@ -66,8 +66,26 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 // CORS configuration for production
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://127.0.0.1:3000', 
+  'file://',
+  'https://trial-lu63.onrender.com',
+  'https://frosstbank-frontend.onrender.com'
+];
+
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://127.0.0.1:3000', 'file://'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -100,12 +118,15 @@ async function initializeDatabase() {
 // Create default admin user
 async function createDefaultAdmin() {
   try {
+    console.log('Checking for existing admin user...');
+    
     // Check if admin already exists
     const existingAdmin = await db.findUserByEmail('admin@frosstbank.com');
 
     if (!existingAdmin) {
+      console.log('No admin user found. Creating default admin...');
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      await db.createUser({
+      const adminUser = await db.createUser({
         name: 'Admin User',
         email: 'admin@frosstbank.com',
         password: hashedPassword,
@@ -114,19 +135,99 @@ async function createDefaultAdmin() {
         balance: 0,
         profilePicture: 'https://ui-avatars.com/api/?name=Admin&background=4F46E5&color=fff&size=40'
       });
-      console.log('Default admin user created successfully');
-      console.log('Email: admin@frosstbank.com');
-      console.log('Password: admin123');
+      console.log('✅ Default admin user created successfully');
+      console.log('📧 Email: admin@frosstbank.com');
+      console.log('🔑 Password: admin123');
+      console.log('🆔 Admin ID:', adminUser.id);
     } else {
-      console.log('Admin user already exists');
+      console.log('✅ Admin user already exists');
+      console.log('📧 Email: admin@frosstbank.com');
+      console.log('🆔 Admin ID:', existingAdmin.id);
     }
+    
+    // Verify admin user can be found
+    const verifyAdmin = await db.findUserByEmail('admin@frosstbank.com');
+    if (verifyAdmin) {
+      console.log('✅ Admin user verification successful');
+    } else {
+      console.log('❌ Admin user verification failed');
+    }
+    
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    console.error('❌ Error creating admin user:', error);
+    // Try to create admin user with basic data as fallback
+    try {
+      console.log('🔄 Attempting fallback admin creation...');
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await db.createUser({
+        name: 'Admin User',
+        email: 'admin@frosstbank.com',
+        password: hashedPassword,
+        role: 'admin',
+        account: 'ADMIN001',
+        balance: 0
+      });
+      console.log('✅ Fallback admin user created successfully');
+    } catch (fallbackError) {
+      console.error('❌ Fallback admin creation also failed:', fallbackError);
+    }
   }
 }
 
 // Initialize database
 initializeDatabase();
+
+// Manual admin creation endpoint (for debugging)
+app.post('/api/admin/create', async (req, res) => {
+  try {
+    console.log('Manual admin creation requested');
+    await createDefaultAdmin();
+    const admin = await db.findUserByEmail('admin@frosstbank.com');
+    if (admin) {
+      res.json({ 
+        success: true, 
+        message: 'Admin user created/verified successfully',
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role
+        }
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to create admin user' });
+    }
+  } catch (error) {
+    console.error('Manual admin creation error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Check admin status endpoint
+app.get('/api/admin/status', async (req, res) => {
+  try {
+    const admin = await db.findUserByEmail('admin@frosstbank.com');
+    if (admin) {
+      res.json({ 
+        success: true, 
+        adminExists: true,
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role
+        }
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        adminExists: false,
+        message: 'Admin user does not exist'
+      });
+    }
+  } catch (error) {
+    console.error('Admin status check error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Auth routes
 app.post('/api/auth/login', async (req, res) => {
