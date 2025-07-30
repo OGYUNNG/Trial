@@ -10,6 +10,7 @@ const cors = require('cors');
 app.use(cors(
   {origin: 'https://trial-2-5mv8.onrender.com'
   , methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
   }
 ));
 
