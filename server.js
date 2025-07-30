@@ -7,7 +7,11 @@ const app = express();
 const PORT = 3000;
 const cors = require('cors');
 // 2. set up cors
-app.use(cors());
+app.use(cors(
+  {origin: 'https://trial-2-5mv8.onrender.com'
+  , methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }
+));
 
 
 // Middleware to serve static files

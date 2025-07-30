@@ -12,8 +12,6 @@ const path = require('path');
 app.use(cors(
   {origin: 'https://trial-2-5mv8.onrender.com'
   , methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-  , credentials: true,
   }
 ));
 
@@ -72,7 +70,8 @@ const sequelize = {
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: 'https://trial-2-5mv8.onrender.com'
+  , methods: ['GET', 'POST', 'PUT', 'DELETE'] } });
 
 // CORS configuration for production
 const allowedOrigins = [
@@ -108,8 +107,6 @@ const corsOptions = {
 app.use(cors(
   {origin: 'https://trial-2-5mv8.onrender.com'
   , methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-  , credentials: true,
   }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

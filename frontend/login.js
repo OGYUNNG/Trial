@@ -52,7 +52,7 @@ loginForm.addEventListener('submit', function (e) {
   // Update this URL to match your actual backend deployment
   const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-2-5mv8-backend.onrender.com';
   fetch(`${backendUrl}/api/auth/login`, {
-    method: 'POST',
+    method: 'POST', 
     headers: {
       'Content-Type': 'application/json'
     },
