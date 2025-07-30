@@ -14,7 +14,7 @@ function initializeSocket() {
   currentUser = JSON.parse(userInfo);
   
   // Connect to Socket.io server
-  const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://frosstbank-backend.onrender.com';
+  const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-lu63-backend.onrender.com';
 socket = io(backendUrl, {
     auth: {
       token: localStorage.getItem('jwtToken')

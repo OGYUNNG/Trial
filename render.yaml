@@ -1,7 +1,7 @@
 services:
   # Backend API Service
   - type: web
-    name: frosstbank-backend
+    name: trial-lu63-backend
     env: node
     plan: free
     rootDir: backend
@@ -26,4 +26,4 @@ services:
     staticPublishPath: ./frontend
     envVars:
       - key: BACKEND_URL
-        value: https://frosstbank-backend.onrender.com 
+        value: https://trial-lu63-backend.onrender.com 

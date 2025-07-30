@@ -49,7 +49,8 @@ loginForm.addEventListener('submit', function (e) {
   }
 
   // Send login data to backend API
-  const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://frosstbank-backend.onrender.com';
+  // Update this URL to match your actual backend deployment
+  const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-lu63-backend.onrender.com';
   fetch(`${backendUrl}/api/auth/login`, {
     method: 'POST',
     headers: {
