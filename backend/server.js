@@ -10,7 +10,10 @@ const path = require('path');
 
 // 1.setup cors
 app.use(cors(
-  {origin: 'https://trial-2-5mv8.onrender.com'}
+  {origin: 'https://trial-2-5mv8.onrender.com'
+  , methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+  }
 ));
 
 // Import database
