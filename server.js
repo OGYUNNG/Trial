@@ -7,11 +7,10 @@ const app = express();
 const PORT = 3000;
 const cors = require('cors');
 
-app.use(express.json());
-
 // 2. set up cors
 app.use(cors(
-  {origin: ['https://trial-2-5mv8-backend.onrender.com', 'http://localhost:4000'] 
+  {origin: [ 'https://trial-2-5mv8.onrender.com',
+    'http://localhost:3000'] 
   , methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
   }
