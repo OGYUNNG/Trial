@@ -13,7 +13,8 @@ const Transaction = sequelize.define('Transaction', {
     references: {
       model: 'users',
       key: 'id'
-    }
+    },
+    onDelete: 'CASCADE'
   },
   date: {
     type: DataTypes.DATEONLY,

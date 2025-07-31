@@ -13,7 +13,8 @@ const Message = sequelize.define('Message', {
     references: {
       model: 'users',
       key: 'id'
-    }
+    },
+    onDelete: 'CASCADE'
   },
   toId: {
     type: DataTypes.INTEGER,
@@ -21,7 +22,8 @@ const Message = sequelize.define('Message', {
     references: {
       model: 'users',
       key: 'id'
-    }
+    },
+    onDelete: 'CASCADE'
   },
   content: {
     type: DataTypes.TEXT,
