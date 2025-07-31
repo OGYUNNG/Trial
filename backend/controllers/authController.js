@@ -35,7 +35,8 @@ exports.login = async (req, res) => {
         name: user.name, 
         role: user.role, 
         account: user.account,
-        balance: user.balance || 0
+        balance: user.balance || 0,
+        profilePicture: user.profilePicture
       } 
     });
   } catch (error) {
