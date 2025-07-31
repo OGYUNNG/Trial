@@ -6,23 +6,118 @@
   <title>Admin Dashboard - Frosst Bank</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    /* Mobile menu styles */
+    .mobile-menu-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+    }
+    
+    .mobile-menu-overlay.active {
+      display: block;
+    }
+    
+    .sidebar {
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 50;
+        transform: translateX(-100%);
+      }
+      
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+    }
+    
+    /* Responsive table */
+    @media (max-width: 768px) {
+      .table-container {
+        overflow-x: auto;
+      }
+      
+      .user-table {
+        min-width: 600px;
+      }
+      
+      .user-card {
+        display: block;
+      }
+      
+      .user-table {
+        display: none;
+      }
+    }
+    
+    /* Mobile-friendly form layouts */
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
+  <!-- Mobile Menu Toggle -->
+  <div class="md:hidden fixed top-4 left-4 z-50">
+    <button id="mobileMenuToggle" class="bg-indigo-900 text-white p-2 rounded-md">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenuOverlay" class="mobile-menu-overlay"></div>
+
   <!-- Sidebar -->
   <div class="flex h-screen">
-    <aside class="w-64 bg-indigo-900 text-white p-5">
-      <h2 class="text-2xl font-bold mb-8">Bank Admin</h2>
+    <aside id="sidebar" class="sidebar w-64 bg-indigo-900 text-white p-5">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold">Bank Admin</h2>
+        <button id="closeSidebar" class="md:hidden text-white">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
       <nav class="flex flex-col space-y-4">
-        <a href="#create" class="hover:text-indigo-300">Create User</a>
-        <a href="#users" class="hover:text-indigo-300">Manage Users</a>
-        <a href="#chat" class="hover:text-indigo-300 relative">
+        <a href="#create" class="hover:text-indigo-300 py-2 px-3 rounded hover:bg-indigo-800 transition-colors">Create User</a>
+        <a href="#users" class="hover:text-indigo-300 py-2 px-3 rounded hover:bg-indigo-800 transition-colors">Manage Users</a>
+        <a href="#chat" class="hover:text-indigo-300 py-2 px-3 rounded hover:bg-indigo-800 transition-colors relative">
           Live Chat
-          <span id="chatNotification" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5" class= "flex items-center justify-center">1</span>
+          <span id="chatNotification" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
         </a>
-        <a href="#transfers" class="hover:text-indigo-300 relative">
+        <a href="#transfers" class="hover:text-indigo-300 py-2 px-3 rounded hover:bg-indigo-800 transition-colors relative">
           Transfer Requests
-          <span id="transferNotification" class="hidden absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5" class= "flex items-center justify-center">1</span>
+          <span id="transferNotification" class="hidden absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
         </a>
       </nav>
       
@@ -44,26 +139,28 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-8 overflow-y-scroll">
+    <main class="main-content flex-1 p-4 md:p-8 overflow-y-scroll">
       
       <!-- Create User -->
       <section id="create" class="mb-10">
         <h2 class="text-xl font-bold mb-4">Create New User</h2>
-        <form class="bg-white p-6 rounded shadow space-y-4" onsubmit="createUser(event)">
-          <input type="text" id="newName" placeholder="Full Name" class="w-full border p-2 rounded" required>
-          <input type="email" id="newEmail" placeholder="Email Address" class="w-full border p-2 rounded" required>
-          <input type="password" id="newPassword" placeholder="Password" class="w-full border p-2 rounded" required>
-          <input type="text" id="newAccount" placeholder="Account Number" class="w-full border p-2 rounded" required>
-          <input type="number" id="newBalance" placeholder="Initial Balance" class="w-full border p-2 rounded" required>
+        <form class="bg-white p-4 md:p-6 rounded shadow space-y-4" onsubmit="createUser(event)">
+          <div class="form-grid grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" id="newName" placeholder="Full Name" class="w-full border p-2 rounded" required>
+            <input type="email" id="newEmail" placeholder="Email Address" class="w-full border p-2 rounded" required>
+            <input type="password" id="newPassword" placeholder="Password" class="w-full border p-2 rounded" required>
+            <input type="text" id="newAccount" placeholder="Account Number" class="w-full border p-2 rounded" required>
+            <input type="number" id="newBalance" placeholder="Initial Balance" class="w-full border p-2 rounded" required>
+          </div>
 
           <!-- Drag-and-Drop Upload -->
           <div id="dropZone" class="border-2 border-dashed border-gray-400 rounded p-4 text-center cursor-pointer">
-            <p>Drag & drop profile image here or click to upload</p>
+            <p class="text-sm md:text-base">Drag & drop profile image here or click to upload</p>
             <input type="file" id="newPictureFile" accept="image/*" class="hidden">
           </div>
           <img id="previewImg" src="" alt="Preview" class="h-20 w-20 rounded-full mx-auto hidden" />
 
-          <button type="submit" class="bg-indigo-700 text-white px-4 py-2 rounded">Create User</button>
+          <button type="submit" class="w-full md:w-auto bg-indigo-700 text-white px-4 py-2 rounded hover:bg-indigo-800 transition-colors">Create User</button>
         </form>
       </section>
 
@@ -73,47 +170,54 @@
         
         <!-- Search and Filter Controls -->
         <div class="bg-white p-4 rounded shadow mb-4">
-          <div class="flex flex-wrap gap-4 items-center">
-            <div class="flex-1 min-w-64">
+          <div class="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div class="flex-1 w-full">
               <input type="text" id="searchUsers" placeholder="Search by name, email, or account..." 
                      class="w-full border p-2 rounded" onkeyup="filterUsers()">
             </div>
-            <div class="flex gap-2">
-              <select id="sortUsers" class="border p-2 rounded" onchange="sortUsers()">
+            <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              <select id="sortUsers" class="border p-2 rounded w-full md:w-auto">
                 <option value="name">Sort by Name</option>
                 <option value="balance">Sort by Balance</option>
                 <option value="account">Sort by Account</option>
               </select>
-              <button onclick="exportUsers()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              <button onclick="exportUsers()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors w-full md:w-auto">
                 Export Users
               </button>
             </div>
           </div>
         </div>
 
-        <div class="bg-white shadow rounded overflow-hidden">
-          <table class="w-full">
-          <thead>
-            <tr class="bg-gray-100 text-left">
-              <th class="p-3">Photo</th>
-              <th class="p-3">Name</th>
-              <th class="p-3">Email</th>
-              <th class="p-3">Account</th>
-              <th class="p-3">Balance ($)</th>
-              <th class="p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="userTable">
-            <!-- Dynamically filled -->
-          </tbody>
-        </table>
+        <!-- Desktop Table -->
+        <div class="table-container bg-white shadow rounded overflow-hidden">
+          <table class="user-table w-full">
+            <thead>
+              <tr class="bg-gray-100 text-left">
+                <th class="p-3">Photo</th>
+                <th class="p-3">Name</th>
+                <th class="p-3">Email</th>
+                <th class="p-3">Account</th>
+                <th class="p-3">Balance ($)</th>
+                <th class="p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTable">
+              <!-- Dynamically filled -->
+            </tbody>
+          </table>
+          
+          <!-- Mobile User Cards -->
+          <div id="userCards" class="user-card p-4 space-y-4">
+            <!-- Mobile user cards will be generated here -->
+          </div>
+          
           <div id="noUsersMessage" class="hidden p-8 text-center text-gray-500">
             No users found matching your search criteria.
           </div>
         </div>
         
         <!-- User Statistics -->
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="mt-4 stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded shadow">
             <div class="text-2xl font-bold text-blue-600" id="totalUsers">0</div>
             <div class="text-sm text-gray-600">Total Users</div>
@@ -136,11 +240,11 @@
       <!-- Transfer Requests -->
       <section id="transfers" class="mb-10">
         <h2 class="text-xl font-bold mb-4">Transfer Requests</h2>
-        <div class="bg-white rounded shadow p-6">
-          <div class="mb-4 flex justify-between items-center">
-            <div class="flex space-x-2">
-              <button onclick="loadTransferRequests()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Refresh</button>
-              <button onclick="exportTransfers()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Export</button>
+        <div class="bg-white rounded shadow p-4 md:p-6">
+          <div class="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button onclick="loadTransferRequests()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors">Refresh</button>
+              <button onclick="exportTransfers()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors">Export</button>
             </div>
             <div class="text-sm text-gray-600">
               <span id="transferStats">Loading...</span>
@@ -156,16 +260,18 @@
       <section id="chat">
         <h2 class="text-xl font-bold mb-4">
           Live Chat with Users
-          <span id="signupChatIndicator" class="hidden ml-2 bg-blue-500 text-white px-2 py-1 rounded text-sm">Sign-up Chat Active</span>
-          <span id="dashboardChatIndicator" class="hidden ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm">Dashboard Chat Active</span>
-          <span id="liveChatIndicator" class="hidden ml-2 bg-purple-500 text-white px-2 py-1 rounded text-sm">Live Chat Active</span>
-          <span id="transferChatIndicator" class="hidden ml-2 bg-orange-500 text-white px-2 py-1 rounded text-sm">Transfer Chat Active</span>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span id="signupChatIndicator" class="hidden bg-blue-500 text-white px-2 py-1 rounded text-xs">Sign-up Chat Active</span>
+            <span id="dashboardChatIndicator" class="hidden bg-green-500 text-white px-2 py-1 rounded text-xs">Dashboard Chat Active</span>
+            <span id="liveChatIndicator" class="hidden bg-purple-500 text-white px-2 py-1 rounded text-xs">Live Chat Active</span>
+            <span id="transferChatIndicator" class="hidden bg-orange-500 text-white px-2 py-1 rounded text-xs">Transfer Chat Active</span>
+          </div>
         </h2>
-        <div class="mb-4 flex space-x-2">
-          <button onclick="testSignupChat()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Test Sign-up Chat</button>
-          <button onclick="testDashboardChat()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Test Dashboard Chat</button>
-          <button onclick="testLiveChat()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm">Test Live Chat</button>
-          <button onclick="testTransferChat()" class="bg-orange-500 text-white px-3 py-1 rounded text-sm">Test Transfer Chat</button>
+        <div class="mb-4 flex flex-wrap gap-2">
+          <button onclick="testSignupChat()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors">Test Sign-up Chat</button>
+          <button onclick="testDashboardChat()" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors">Test Dashboard Chat</button>
+          <button onclick="testLiveChat()" class="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 transition-colors">Test Live Chat</button>
+          <button onclick="testTransferChat()" class="bg-orange-500 text-white px-3 py-1 rounded text-sm hover:bg-orange-600 transition-colors">Test Transfer Chat</button>
         </div>
         
         <!-- Chat Source Selector -->
@@ -176,18 +282,18 @@
           </div>
         </div>
 
-        <div class="bg-white rounded shadow h-96 p-4 flex flex-col">
+        <div class="bg-white rounded shadow h-80 md:h-96 p-4 flex flex-col">
           <div class="flex-1 overflow-y-auto mb-4" id="chatBox">
             <!-- Chat messages go here -->
             <div class="mb-2 text-left text-gray-800">
-              <span class="bg-gray-100 px-3 py-2 rounded inline-block">
+              <span class="bg-gray-100 px-3 py-2 rounded inline-block text-sm">
                 <strong>System:</strong> Welcome to the unified chat system. You can now communicate with users from all pages.
               </span>
             </div>
           </div>
           <div class="flex">
-            <input type="text" id="chatInput" class="flex-1 border p-2 rounded-l" placeholder="Type a message...">
-            <button onclick="sendMessage()" class="bg-indigo-700 text-white px-4 py-2 rounded-r">Send</button>
+            <input type="text" id="chatInput" class="flex-1 border p-2 rounded-l text-sm" placeholder="Type a message...">
+            <button onclick="sendMessage()" class="bg-indigo-700 text-white px-4 py-2 rounded-r hover:bg-indigo-800 transition-colors">Send</button>
           </div>
         </div>
       </section>
@@ -195,45 +301,32 @@
       <!-- Manage Transactions -->
       <section id="transactions" class="mb-10">
         <h2 class="text-xl font-bold mb-4">Manage Transactions</h2>
-        <div class="bg-white p-6 rounded shadow mb-4">
-          <form id="addTransactionForm" class="flex flex-wrap gap-4 items-end">
-            <input type="text" id="txUserAccount" placeholder="User Account #" class="border p-2 rounded w-40" required>
-            <input type="date" id="txDate" class="border p-2 rounded w-36" required>
-            <input type="time" id="txTime" class="border p-2 rounded w-32" required>
-            <input type="text" id="txDescription" placeholder="Description" class="border p-2 rounded w-48" required>
-            <input type="text" id="txCategory" placeholder="Category" class="border p-2 rounded w-32" required>
-            <input type="number" id="txAmount" placeholder="Amount" class="border p-2 rounded w-28" required>
-            <select id="txStatus" class="border p-2 rounded w-32">
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-            </select>
-            <button type="submit" class="bg-indigo-700 text-white px-4 py-2 rounded">Add Transaction</button>
+        <div class="bg-white p-4 md:p-6 rounded shadow mb-4">
+          <form id="addTransactionForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <input type="text" id="txUserAccount" placeholder="User Account #" class="border p-2 rounded" required>
+            <input type="text" id="txDescription" placeholder="Description" class="border p-2 rounded" required>
+            <input type="number" id="txAmount" placeholder="Amount" step="0.01" class="border p-2 rounded" required>
+            <button type="submit" class="bg-indigo-700 text-white px-4 py-2 rounded hover:bg-indigo-800 transition-colors">Add Transaction</button>
           </form>
         </div>
-        <div class="bg-white rounded shadow p-4">
-          <div class="mb-2 flex flex-wrap gap-2 items-center">
-            <input type="text" id="txSearch" placeholder="Search by account, description, or category..." class="border p-2 rounded flex-1" onkeyup="filterTransactions()">
-            <button onclick="exportTransactions()" class="bg-green-500 text-white px-3 py-1 rounded">Export</button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+
+        <div class="bg-white shadow rounded overflow-hidden">
+          <div class="table-container">
+            <table class="w-full">
               <thead>
-                <tr class="bg-gray-100">
-                  <th class="p-2">Account</th>
-                  <th class="p-2">Date</th>
-                  <th class="p-2">Time</th>
-                  <th class="p-2">Description</th>
-                  <th class="p-2">Category</th>
-                  <th class="p-2">Amount</th>
-                  <th class="p-2">Status</th>
-                  <th class="p-2">Actions</th>
+                <tr class="bg-gray-100 text-left">
+                  <th class="p-2 md:p-3 text-xs md:text-sm">User</th>
+                  <th class="p-2 md:p-3 text-xs md:text-sm">Date</th>
+                  <th class="p-2 md:p-3 text-xs md:text-sm">Description</th>
+                  <th class="p-2 md:p-3 text-xs md:text-sm">Amount</th>
+                  <th class="p-2 md:p-3 text-xs md:text-sm">Status</th>
+                  <th class="p-2 md:p-3 text-xs md:text-sm">Actions</th>
                 </tr>
               </thead>
-              <tbody id="txTable">
-                <!-- Transactions will be rendered here -->
+              <tbody id="transactionTable">
+                <!-- Dynamically filled -->
               </tbody>
             </table>
-            <div id="noTxMessage" class="hidden p-8 text-center text-gray-500">No transactions found.</div>
           </div>
         </div>
       </section>
@@ -242,17 +335,47 @@
   </div>
 
   <!-- Edit Modal -->
-  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-lg font-bold mb-4">Edit User</h3>
-      <input type="text" id="editName" class="w-full border p-2 mb-2 rounded" />
-      <input type="email" id="editEmail" class="w-full border p-2 mb-2 rounded" />
-      <input type="text" id="editAccount" class="w-full border p-2 mb-2 rounded" />
-      <input type="number" id="editBalance" class="w-full border p-2 mb-2 rounded" />
-      <input type="url" id="editPicture" class="w-full border p-2 mb-4 rounded" />
-      <div class="flex justify-end space-x-2">
-        <button onclick="closeEdit()" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
-        <button onclick="saveEdit()" class="bg-indigo-700 text-white px-4 py-2 rounded">Save</button>
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white p-4 md:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">Edit User</h3>
+        <button onclick="closeEdit()" class="text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input type="text" id="editName" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <input type="email" id="editEmail" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+          <input type="text" id="editAccount" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Balance</label>
+          <input type="number" id="editBalance" step="0.01" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture URL</label>
+          <input type="url" id="editPicture" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." />
+        </div>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-2 mt-6">
+        <button onclick="closeEdit()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded transition-colors">Cancel</button>
+        <button onclick="saveEdit()" class="flex-1 bg-indigo-700 hover:bg-indigo-800 text-white px-4 py-2 rounded transition-colors">Save Changes</button>
       </div>
     </div>
   </div>
@@ -333,6 +456,31 @@
         chatInput.addEventListener('keypress', function(e) {
           if (e.key === 'Enter') {
             sendMessage();
+          }
+        });
+      }
+
+      // Mobile menu toggle
+      const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+      const sidebar = document.getElementById('sidebar');
+      const closeSidebar = document.getElementById('closeSidebar');
+      const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+
+      if (mobileMenuToggle && sidebar && closeSidebar && mobileMenuOverlay) {
+        mobileMenuToggle.addEventListener('click', () => {
+          sidebar.classList.add('active');
+          mobileMenuOverlay.classList.add('active');
+        });
+
+        closeSidebar.addEventListener('click', () => {
+          sidebar.classList.remove('active');
+          mobileMenuOverlay.classList.remove('active');
+        });
+
+        mobileMenuOverlay.addEventListener('click', (e) => {
+          if (e.target === mobileMenuOverlay) {
+            sidebar.classList.remove('active');
+            mobileMenuOverlay.classList.remove('active');
           }
         });
       }
@@ -496,19 +644,22 @@
 
     function renderUsers(userList = users) {
       const tbody = document.getElementById('userTable');
+      const userCards = document.getElementById('userCards');
       const noUsersMessage = document.getElementById('noUsersMessage');
       
       if (!tbody) return;
       
       if (userList.length === 0) {
         tbody.innerHTML = '';
+        userCards.innerHTML = ''; // Clear mobile cards
         if (noUsersMessage) noUsersMessage.classList.remove('hidden');
         return;
       }
       
       if (noUsersMessage) noUsersMessage.classList.add('hidden');
       tbody.innerHTML = '';
-      
+      userCards.innerHTML = ''; // Clear mobile cards
+
       userList.forEach((user, index) => {
         const row = `
           <tr class="border-b hover:bg-gray-50">
@@ -526,6 +677,25 @@
           </tr>
         `;
         tbody.innerHTML += row;
+
+        const mobileCard = `
+          <div class="bg-white p-4 rounded-lg shadow-md flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <img src="${user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=4F46E5&color=fff&size=40`}" alt="${user.name}" class="h-12 w-12 rounded-full">
+              <div>
+                <h3 class="font-semibold text-lg">${user.name}</h3>
+                <p class="text-sm text-gray-600">${user.email}</p>
+                <p class="text-sm text-gray-600">Account: ${user.account}</p>
+                <p class="text-sm text-gray-600">Balance: $${user.balance ? user.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}</p>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+              <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+            </div>
+          </div>
+        `;
+        userCards.innerHTML += mobileCard;
       });
       
       updateUserStatistics();
@@ -618,7 +788,7 @@
         console.log('Update result:', result);
         showNotification('User updated successfully!', 'success');
         loadUsers();
-        closeEdit();
+      closeEdit();
       } catch (error) {
         console.error('Error updating user:', error);
         console.error('Error details:', error);
@@ -673,8 +843,8 @@
         const statusColor = transfer.status === 'pending' ? 'text-yellow-600' : transfer.status === 'completed' ? 'text-green-600' : 'text-red-600';
         const statusBg = transfer.status === 'pending' ? 'bg-yellow-100' : transfer.status === 'completed' ? 'bg-green-100' : 'bg-red-100';
         
-        transferElement.innerHTML = `
-          <div class="flex justify-between items-start">
+      transferElement.innerHTML = `
+        <div class="flex justify-between items-start">
             <div class="flex-1">
               <h3 class="font-semibold">Transfer Request #${transfer.transferId || `TRX-${transfer.id}`}</h3>
               <p class="text-sm text-gray-600">From: ${transfer.fromUser ? transfer.fromUser.name : 'Unknown'} (•••• ${transfer.fromUser ? transfer.fromUser.account.slice(-4) : '****'})</p>
@@ -688,7 +858,7 @@
               <p class="text-sm text-gray-600">Date: ${transfer.date} ${transfer.time}</p>
               ${transfer.memo ? `<p class="text-sm text-gray-600">Memo: ${transfer.memo}</p>` : ''}
               <span class="inline-block px-2 py-1 rounded text-xs ${statusBg} ${statusColor} font-semibold">${transfer.status.charAt(0).toUpperCase() + transfer.status.slice(1)}</span>
-            </div>
+          </div>
             <div class="flex space-x-2 ml-4">
               ${transfer.status === 'pending' ? `
                 <button onclick="approveTransfer(${transfer.id})" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Approve</button>
@@ -697,9 +867,9 @@
                 <span class="text-sm ${statusColor} font-semibold">${transfer.status === 'completed' ? '✓ Approved' : '✗ Rejected'}</span>
               `}
             </div>
-          </div>
-        `;
-        
+        </div>
+      `;
+      
         container.appendChild(transferElement);
       });
     }
@@ -1295,7 +1465,7 @@
 
     // --- Transaction Management (Backend API) ---
     async function renderTransactions(txList) {
-      const tbody = document.getElementById('txTable');
+      const tbody = document.getElementById('transactionTable');
       const noTxMessage = document.getElementById('noTxMessage');
       if (!tbody) return;
       if (!txList || txList.length === 0) {
@@ -1513,6 +1683,141 @@
         window.location.href = 'login.html';
       }
     }
+
+    // Mobile menu functionality
+    function initializeMobileMenu() {
+      const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+      const closeSidebar = document.getElementById('closeSidebar');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileMenuOverlay');
+
+      function openSidebar() {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeSidebarMenu() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      mobileMenuToggle.addEventListener('click', openSidebar);
+      closeSidebar.addEventListener('click', closeSidebarMenu);
+      overlay.addEventListener('click', closeSidebarMenu);
+
+      // Close sidebar when clicking on navigation links
+      const navLinks = sidebar.querySelectorAll('a');
+      navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            closeSidebarMenu();
+          }
+        });
+      });
+    }
+
+    // Update renderUsers function to support mobile cards
+    function renderUsers(userList = users) {
+      const tbody = document.getElementById('userTable');
+      const userCards = document.getElementById('userCards');
+      const noUsersMessage = document.getElementById('noUsersMessage');
+
+      if (!tbody || !userCards) return;
+
+      // Clear existing content
+      tbody.innerHTML = '';
+      userCards.innerHTML = '';
+
+      if (!userList || userList.length === 0) {
+        noUsersMessage.classList.remove('hidden');
+        return;
+      }
+
+      noUsersMessage.classList.add('hidden');
+
+      userList.forEach(user => {
+        // Desktop table row
+        const row = `
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-3">
+              <img src="${user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=4F46E5&color=fff&size=40`}" 
+                   class="h-10 w-10 rounded-full" alt="${user.name}" />
+            </td>
+            <td class="p-3 font-medium">${user.name}</td>
+            <td class="p-3 text-gray-600">${user.email}</td>
+            <td class="p-3 text-gray-600">${user.account}</td>
+            <td class="p-3 font-medium">$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3">
+              <div class="flex space-x-2">
+                <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+                <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+
+        // Mobile card
+        const card = `
+          <div class="bg-gray-50 rounded-lg p-4 border">
+            <div class="flex items-center space-x-3 mb-3">
+              <img src="${user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=4F46E5&color=fff&size=40`}" 
+                   class="h-12 w-12 rounded-full" alt="${user.name}" />
+              <div class="flex-1">
+                <h3 class="font-medium text-gray-900">${user.name}</h3>
+                <p class="text-sm text-gray-600">${user.email}</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+              <div>
+                <span class="text-gray-500">Account:</span>
+                <span class="font-medium">${user.account}</span>
+              </div>
+              <div>
+                <span class="text-gray-500">Balance:</span>
+                <span class="font-medium text-green-600">$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+            </div>
+            <div class="flex space-x-2">
+              <button onclick="openEdit('${user.id}')" class="flex-1 bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700 transition-colors">Edit</button>
+              <button onclick="deleteUser('${user.id}')" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+          </div>
+        `;
+        userCards.innerHTML += card;
+      });
+      
+      updateUserStatistics();
+    }
+
+    // Initialize mobile menu on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if admin is logged in
+      const admin = getAdminInfo();
+      if (!admin) return;
+
+      // Initialize mobile menu
+      initializeMobileMenu();
+
+      // Load data from backend
+      loadUsers();
+      loadTransactions();
+      loadTransferRequests();
+      updateActiveChatsDisplay();
+      initializeSocket(); // Initialize Socket.io
+      
+      // Add chat input event listener
+      const chatInput = document.getElementById('chatInput');
+      if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+      }
+    });
   </script>
 
 </body>
