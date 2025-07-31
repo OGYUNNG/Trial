@@ -121,7 +121,7 @@ const backendUrl = window.location.hostname === 'localhost'
   : 'https://trial-1-sq1y.onrender.com';
 
 // Connect to Socket.io server
-socket = io(backendSocketUrl, {
+socket = io(backendUrl, {
   auth: {
     token: localStorage.getItem('jwtToken')
   }
