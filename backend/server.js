@@ -305,15 +305,24 @@ app.get('/api/users', async (req, res) => {
       attributes: ['id', 'name', 'email', 'role', 'account', 'balance', 'profilePicture']
     });
     
-    const userList = users.map(user => ({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      account: user.account,
-      balance: user.balance,
-      profilePicture: user.profilePicture
-    }));
+    // Get all transactions to calculate balance
+    const transactions = await Transaction.findAll();
+    
+    const userList = users.map(user => {
+      // Calculate balance from transactions
+      const userTransactions = transactions.filter(tx => tx.userId === user.id);
+      const calculatedBalance = userTransactions.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
+      
+      return {
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        account: user.account,
+        balance: parseFloat(calculatedBalance).toFixed(2),
+        profilePicture: user.profilePicture
+      };
+    });
     
     res.json(userList);
   } catch (error) {
@@ -324,7 +333,7 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   try {
-    const { name, email, password, account, role = 'user', profilePicture } = req.body;
+    const { name, email, password, account, role = 'user', balance = 0, profilePicture } = req.body;
     
     const hash = await bcrypt.hash(password, 10);
     const newUser = await User.create({
@@ -333,9 +342,22 @@ app.post('/api/users', async (req, res) => {
       password: hash,
       role,
       account,
-      balance: 0,
-              profilePicture: profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${getRandomColor()}&color=fff&size=40`
+      balance: parseFloat(balance || 0),
+      profilePicture: profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${getRandomColor()}&color=fff&size=40`
     });
+    
+    // If initial balance is provided, create an initial transaction
+    if (balance && parseFloat(balance) > 0) {
+      await Transaction.create({
+        userId: newUser.id,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString(),
+        description: 'Initial deposit',
+        category: 'Deposit',
+        amount: parseFloat(balance),
+        status: 'completed'
+      });
+    }
     
     res.json({
       _id: newUser.id,
@@ -356,7 +378,7 @@ app.post('/api/users', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    const { name, email, account, profilePicture } = req.body;
+    const { name, email, account, balance, profilePicture } = req.body;
     
     const user = await User.findByPk(userId);
     if (!user) {
@@ -368,6 +390,7 @@ app.put('/api/users/:id', async (req, res) => {
       name: name || user.name,
       email: email || user.email,
       account: account || user.account,
+      balance: balance !== undefined ? parseFloat(balance) : user.balance,
       profilePicture: profilePicture || user.profilePicture
     });
     
@@ -457,6 +480,14 @@ app.post('/api/transactions', async (req, res) => {
       status
     });
     
+    // Update user balance
+    const userRecord = await User.findByPk(user);
+    if (userRecord) {
+      const currentBalance = parseFloat(userRecord.balance || 0);
+      const newBalance = currentBalance + parseFloat(amount);
+      await db.updateUser(user, { balance: newBalance.toFixed(2) });
+    }
+    
     res.json(newTransaction);
   } catch (error) {
     console.error('Error creating transaction:', error);
@@ -475,6 +506,9 @@ app.put('/api/transactions/:id', async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
     
+    const oldAmount = transaction.amount;
+    const oldUserId = transaction.userId;
+    
     // Update transaction fields
     if (user !== undefined) transaction.userId = user;
     if (date !== undefined) transaction.date = date;
@@ -485,6 +519,25 @@ app.put('/api/transactions/:id', async (req, res) => {
     if (status !== undefined) transaction.status = status;
     
     await transaction.save();
+    
+    // Update user balance if amount or user changed
+    if (oldAmount !== transaction.amount || oldUserId !== transaction.userId) {
+      // Recalculate balance for old user
+      if (oldUserId) {
+        const oldUserTransactions = await Transaction.findAll();
+        const oldUserTx = oldUserTransactions.filter(tx => tx.userId === oldUserId && tx.id !== transactionId);
+        const oldUserBalance = oldUserTx.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
+        await db.updateUser(oldUserId, { balance: oldUserBalance.toFixed(2) });
+      }
+      
+      // Recalculate balance for new user
+      if (transaction.userId) {
+        const newUserTransactions = await Transaction.findAll();
+        const newUserTx = newUserTransactions.filter(tx => tx.userId === transaction.userId);
+        const newUserBalance = newUserTx.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
+        await db.updateUser(transaction.userId, { balance: newUserBalance.toFixed(2) });
+      }
+    }
     
     res.json(transaction);
   } catch (error) {
@@ -503,7 +556,16 @@ app.delete('/api/transactions/:id', async (req, res) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
     
+    const userId = transaction.userId;
     await transaction.destroy();
+    
+    // Update user balance
+    if (userId) {
+      const userTransactions = await Transaction.findAll();
+      const userTx = userTransactions.filter(tx => tx.userId === userId);
+      const userBalance = userTx.reduce((sum, tx) => sum + parseFloat(tx.amount || 0), 0);
+      await db.updateUser(userId, { balance: userBalance.toFixed(2) });
+    }
     
     res.json({ message: 'Transaction deleted successfully' });
   } catch (error) {
@@ -626,16 +688,21 @@ app.put('/api/transfers/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Sender not found' });
     }
 
+    // Check if sender has sufficient balance
+    if (sender.balance < transfer.amount) {
+      return res.status(400).json({ error: 'Insufficient funds' });
+    }
+
     // Update sender balance
-    sender.balance -= transfer.amount;
-    await sender.save();
+    const newSenderBalance = parseFloat(sender.balance) - parseFloat(transfer.amount);
+    await db.updateUser(sender.id, { balance: newSenderBalance.toFixed(2) });
 
     // Update recipient balance if internal transfer
     if (transfer.toUserId) {
       const recipient = await User.findByPk(transfer.toUserId);
       if (recipient) {
-        recipient.balance += transfer.amount;
-        await recipient.save();
+        const newRecipientBalance = parseFloat(recipient.balance || 0) + parseFloat(transfer.amount);
+        await db.updateUser(recipient.id, { balance: newRecipientBalance.toFixed(2) });
       }
     }
 

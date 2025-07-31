@@ -176,7 +176,7 @@
                      class="w-full border p-2 rounded" onkeyup="filterUsers()">
             </div>
             <div class="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              <select id="sortUsers" class="border p-2 rounded w-full md:w-auto">
+              <select id="sortUsers" class="border p-2 rounded w-full md:w-auto" onchange="sortUsers()">
                 <option value="name">Sort by Name</option>
                 <option value="balance">Sort by Balance</option>
                 <option value="account">Sort by Account</option>
@@ -369,7 +369,11 @@
         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Profile Picture URL</label>
-          <input type="url" id="editPicture" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." />
+          <input type="url" id="editPicture" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." onchange="updateProfilePreview()" />
+          <div class="mt-2 flex items-center space-x-3">
+            <img id="editProfilePreview" src="" alt="Profile Preview" class="w-12 h-12 rounded-full border-2 border-gray-200 hidden" />
+            <span id="editProfilePreviewText" class="text-sm text-gray-500">Profile picture preview will appear here</span>
+          </div>
         </div>
       </div>
       
@@ -592,7 +596,7 @@
       }
 
       try {
-        // Create user via API
+        // Create user via API with balance included
         const newUser = await apiCall('/users', {
           method: 'POST',
           body: JSON.stringify({
@@ -601,27 +605,12 @@
             password: password,
             account,
             role: 'user',
+            balance: balance,
             profilePicture
           })
         });
 
         if (newUser) {
-          // Add initial balance as a transaction
-          if (balance > 0) {
-            await apiCall('/transactions', {
-              method: 'POST',
-              body: JSON.stringify({
-                user: newUser.id,
-                date: new Date().toISOString().split('T')[0],
-                time: new Date().toLocaleTimeString(),
-                description: 'Initial deposit',
-                category: 'Deposit',
-                amount: balance,
-                status: 'completed'
-              })
-            });
-          }
-
           showNotification('User created successfully!', 'success');
           loadUsers(); // Reload users
           loadTransactions(); // Reload transactions
@@ -667,11 +656,11 @@
             <td class="p-3 font-medium">${user.name}</td>
             <td class="p-3 text-gray-600">${user.email}</td>
             <td class="p-3 font-mono text-sm">${user.account}</td>
-            <td class="p-3 font-bold text-green-600">$${user.balance ? user.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}</td>
+            <td class="p-3 font-bold text-green-600">$${parseFloat(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="p-3">
               <div class="flex space-x-2">
-                <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
-                <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                <button onclick="openEdit('${user._id || user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+                <button onclick="deleteUser('${user._id || user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
               </div>
             </td>
           </tr>
@@ -686,12 +675,12 @@
                 <h3 class="font-semibold text-lg">${user.name}</h3>
                 <p class="text-sm text-gray-600">${user.email}</p>
                 <p class="text-sm text-gray-600">Account: ${user.account}</p>
-                <p class="text-sm text-gray-600">Balance: $${user.balance ? user.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}</p>
+                <p class="text-sm text-green-600 font-semibold">Balance: $${parseFloat(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
               </div>
             </div>
             <div class="flex space-x-2">
-              <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
-              <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+              <button onclick="openEdit('${user._id || user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+              <button onclick="deleteUser('${user._id || user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
             </div>
           </div>
         `;
@@ -727,12 +716,12 @@
       console.log('Available users:', users);
       
       currentEditIndex = userId;
-      const user = users.find(u => u.id === userId);
+      const user = users.find(u => u._id === userId || u.id === userId);
       
       console.log('User found by ID:', user);
       console.log('User ID comparison check:');
       users.forEach(u => {
-        console.log(`User ${u.id} (${typeof u.id}) === ${userId} (${typeof userId}): ${u.id === userId}`);
+        console.log(`User ${u._id || u.id} (${typeof (u._id || u.id)}) === ${userId} (${typeof userId}): ${(u._id || u.id) === userId}`);
       });
       
       if (!user) {
@@ -746,8 +735,12 @@
       document.getElementById('editName').value = user.name;
       document.getElementById('editEmail').value = user.email;
       document.getElementById('editAccount').value = user.account;
-      document.getElementById('editBalance').value = user.balance || 0;
+      document.getElementById('editBalance').value = parseFloat(user.balance || 0).toFixed(2);
       document.getElementById('editPicture').value = user.profilePicture || '';
+      
+      // Update profile preview
+      updateProfilePreview();
+      
       document.getElementById('editModal').classList.remove('hidden');
       document.getElementById('editModal').classList.add('flex');
     }
@@ -757,12 +750,41 @@
       currentEditIndex = null;
     }
 
+    function updateProfilePreview() {
+      const pictureUrl = document.getElementById('editPicture').value.trim();
+      const previewImg = document.getElementById('editProfilePreview');
+      const previewText = document.getElementById('editProfilePreviewText');
+      
+      if (pictureUrl) {
+        previewImg.src = pictureUrl;
+        previewImg.classList.remove('hidden');
+        previewText.classList.add('hidden');
+        
+        // Handle image load error
+        previewImg.onerror = function() {
+          previewImg.classList.add('hidden');
+          previewText.textContent = 'Invalid image URL';
+          previewText.classList.remove('hidden');
+        };
+        
+        // Handle image load success
+        previewImg.onload = function() {
+          previewImg.classList.remove('hidden');
+          previewText.classList.add('hidden');
+        };
+      } else {
+        previewImg.classList.add('hidden');
+        previewText.textContent = 'Profile picture preview will appear here';
+        previewText.classList.remove('hidden');
+      }
+    }
+
     async function saveEdit() {
-      const name = document.getElementById('editName').value;
-      const email = document.getElementById('editEmail').value;
-      const account = document.getElementById('editAccount').value;
-      const balance = parseFloat(document.getElementById('editBalance').value) || 0;
-      const profilePicture = document.getElementById('editPicture').value || `https://via.placeholder.com/40/${getRandomColor()}/FFFFFF?text=${name.split(' ').map(n => n[0]).join('')}`;
+      const name = document.getElementById('editName').value.trim();
+      const email = document.getElementById('editEmail').value.trim();
+      const account = document.getElementById('editAccount').value.trim();
+      const balanceInput = document.getElementById('editBalance').value;
+      const profilePicture = document.getElementById('editPicture').value.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${getRandomColor()}&color=fff&size=40`;
 
       // Validate inputs
       if (!name || !email || !account) {
@@ -770,25 +792,73 @@
         return;
       }
 
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+      }
+
+      // Validate balance
+      const newBalance = parseFloat(balanceInput);
+      if (isNaN(newBalance) || newBalance < 0) {
+        alert('Please enter a valid balance (must be a positive number).');
+        return;
+      }
+
       console.log('Attempting to update user with ID:', currentEditIndex);
       console.log('User ID type:', typeof currentEditIndex);
-      console.log('Update data:', { name, email, account, profilePicture });
+      console.log('Update data:', { name, email, account, newBalance, profilePicture });
 
       try {
+        // Get current user to compare balance
+        const currentUser = users.find(u => (u._id === currentEditIndex) || (u.id === currentEditIndex));
+        const currentBalance = parseFloat(currentUser?.balance || 0);
+        const balanceDifference = newBalance - currentBalance;
+
+        // Update user basic info
         const result = await apiCall(`/users/${currentEditIndex}`, {
           method: 'PUT',
           body: JSON.stringify({
             name,
             email,
             account,
+            balance: newBalance,
             profilePicture
           })
         });
 
+        // If balance changed, create a transaction to reflect the change
+        if (balanceDifference !== 0) {
+          // Show confirmation for significant balance changes
+          if (Math.abs(balanceDifference) > 1000) {
+            const confirmMessage = `You are about to change the balance by $${Math.abs(balanceDifference).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}. This will create a transaction record. Continue?`;
+            if (!confirm(confirmMessage)) {
+              return;
+            }
+          }
+          
+          const transactionDescription = balanceDifference > 0 ? 'Balance adjustment (credit)' : 'Balance adjustment (debit)';
+          const transactionAmount = balanceDifference;
+          
+          await apiCall('/transactions', {
+            method: 'POST',
+            body: JSON.stringify({
+              user: currentEditIndex,
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toLocaleTimeString(),
+              description: transactionDescription,
+              category: 'Adjustment',
+              amount: transactionAmount,
+              status: 'completed'
+            })
+          });
+        }
+
         console.log('Update result:', result);
         showNotification('User updated successfully!', 'success');
         loadUsers();
-      closeEdit();
+        closeEdit();
       } catch (error) {
         console.error('Error updating user:', error);
         console.error('Error details:', error);
@@ -1614,9 +1684,9 @@
     // Update user statistics
     function updateUserStatistics() {
       const totalUsers = users.length;
-      const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
+      const totalBalance = users.reduce((sum, user) => sum + parseFloat(user.balance || 0), 0);
       const avgBalance = totalUsers > 0 ? totalBalance / totalUsers : 0;
-      const highBalanceUsers = users.filter(user => (user.balance || 0) > 10000).length;
+      const highBalanceUsers = users.filter(user => parseFloat(user.balance || 0) > 10000).length;
 
       const totalUsersEl = document.getElementById('totalUsers');
       const totalBalanceEl = document.getElementById('totalBalance');
@@ -1647,7 +1717,7 @@
           case 'name':
             return a.name.localeCompare(b.name);
           case 'balance':
-            return (b.balance || 0) - (a.balance || 0); // High to low
+            return parseFloat(b.balance || 0) - parseFloat(a.balance || 0); // High to low
           case 'account':
             return a.account.localeCompare(b.account);
           default:
@@ -1661,7 +1731,7 @@
       const csvContent = "data:text/csv;charset=utf-8," 
         + "Name,Email,Account,Balance\n"
         + users.map(user => 
-            `"${user.name}","${user.email}","${user.account}","${user.balance || 0}"`
+            `"${user.name}","${user.email}","${user.account}","${parseFloat(user.balance || 0).toFixed(2)}"`
           ).join("\n");
       
       const encodedUri = encodeURI(csvContent);
@@ -1748,11 +1818,11 @@
             <td class="p-3 font-medium">${user.name}</td>
             <td class="p-3 text-gray-600">${user.email}</td>
             <td class="p-3 text-gray-600">${user.account}</td>
-            <td class="p-3 font-medium">$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3 font-medium text-green-600">$${parseFloat(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="p-3">
               <div class="flex space-x-2">
-                <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
-                <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                <button onclick="openEdit('${user._id || user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+                <button onclick="deleteUser('${user._id || user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
               </div>
             </td>
           </tr>
@@ -1777,12 +1847,12 @@
               </div>
               <div>
                 <span class="text-gray-500">Balance:</span>
-                <span class="font-medium text-green-600">$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span class="font-medium text-green-600">$${parseFloat(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             </div>
             <div class="flex space-x-2">
-              <button onclick="openEdit('${user.id}')" class="flex-1 bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700 transition-colors">Edit</button>
-              <button onclick="deleteUser('${user.id}')" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors">Delete</button>
+              <button onclick="openEdit('${user._id || user.id}')" class="flex-1 bg-indigo-600 text-white px-3 py-2 rounded text-sm hover:bg-indigo-700 transition-colors">Edit</button>
+              <button onclick="deleteUser('${user._id || user.id}')" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors">Delete</button>
             </div>
           </div>
         `;
