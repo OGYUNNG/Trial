@@ -128,11 +128,11 @@ socket = io(backendUrl, {
 });
 
       // Join user's personal room
-      socket.emit('join', { userId: currentUser._id });
+      socket.emit('join', { userId: currentUser.id });
 
       // Listen for incoming messages
       socket.on('message', (message) => {
-        if (message.from !== currentUser._id) {
+        if (message.from !== currentUser.id) {
           addMessage(message.content, 'admin');
         }
       });
@@ -158,7 +158,7 @@ socket = io(backendUrl, {
       if (socket && socket.connected) {
         socket.emit('chatNotification', {
           type: 'livechat',
-          userId: currentUser._id,
+          userId: currentUser.id,
           userName: currentUser.name,
           userAccount: currentUser.account,
           timestamp: new Date().toISOString()
@@ -183,7 +183,7 @@ socket = io(backendUrl, {
       // Send message via Socket.io
       if (socket && socket.connected) {
         socket.emit('message', {
-          from: currentUser._id,
+          from: currentUser.id,
           to: 'admin',
           content: message,
           timestamp: new Date().toISOString()

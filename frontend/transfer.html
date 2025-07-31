@@ -34,17 +34,8 @@
                 <form class="transfer-form">
                     <div class="form-section">
                         <h2 class="section-title">From Account</h2>
-                        <div class="account-selector">
-                            <div class="account-option active">
-                                <div class="account-type">Primary Checking</div>
-                                <div class="account-number">•••• 4567</div>
-                                <div class="account-balance">$8,245.50</div>
-                            </div>
-                            <div class="account-option">
-                                <div class="account-type">Savings</div>
-                                <div class="account-number">•••• 8910</div>
-                                <div class="account-balance">$12,100.00</div>
-                            </div>
+                        <div class="account-selector" id="accountSelector">
+                            <!-- User accounts will be loaded here dynamically -->
                         </div>
                     </div>
 
@@ -60,9 +51,17 @@
                             <label for="recipient">Recipient</label>
                             <select id="recipient" class="form-control">
                                 <option value="">Select recipient</option>
-                                <option value="1">John Smith (•••• 3456)</option>
-                                <option value="2">Sarah Johnson (•••• 7890)</option>
-                                <option value="3">Add new recipient</option>
+                                <option value="users">Other Frosst Bank Users</option>
+                                <option value="external">External Bank Transfer</option>
+                                <option value="add-new">Add New Recipient</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="users-selection" style="display: none;">
+                            <label for="user-recipient">Select Frosst Bank User</label>
+                            <select id="user-recipient" class="form-control">
+                                <option value="">Select a user</option>
+                                <!-- Users will be loaded here dynamically -->
                             </select>
                         </div>
 
@@ -70,6 +69,7 @@
                             <label for="bank-name">Select Bank</label>
                             <select id="bank-name" class="form-control">
                                 <option value="">Select a bank</option>
+                                <!-- Major US Banks -->
                                 <option value="chase">Chase Bank</option>
                                 <option value="bankofamerica">Bank of America</option>
                                 <option value="wellsfargo">Wells Fargo</option>
@@ -78,8 +78,8 @@
                                 <option value="pnc">PNC Bank</option>
                                 <option value="capitalone">Capital One</option>
                                 <option value="tdbank">TD Bank</option>
-                                <option value="bbt">BB&T</option>
-                                <option value="suntrust">SunTrust</option>
+                                <option value="bbt">BB&T Bank</option>
+                                <option value="suntrust">SunTrust Bank</option>
                                 <option value="regions">Regions Bank</option>
                                 <option value="keybank">KeyBank</option>
                                 <option value="fifththird">Fifth Third Bank</option>
@@ -93,6 +93,26 @@
                                 <option value="americanexpress">American Express Bank</option>
                                 <option value="goldmansachs">Goldman Sachs Bank</option>
                                 <option value="morganstanley">Morgan Stanley Bank</option>
+                                <option value="schwab">Charles Schwab Bank</option>
+                                <option value="usaa">USAA Bank</option>
+                                <option value="navyfederal">Navy Federal Credit Union</option>
+                                <option value="penfed">Pentagon Federal Credit Union</option>
+                                <option value="alliant">Alliant Credit Union</option>
+                                <option value="statefarm">State Farm Bank</option>
+                                <option value="fidelity">Fidelity Bank</option>
+                                <option value="vanguard">Vanguard Bank</option>
+                                <option value="etrade">E*TRADE Bank</option>
+                                <option value="sofi">SoFi Bank</option>
+                                <option value="chime">Chime Bank</option>
+                                <option value="varomoney">Varo Money Bank</option>
+                                <option value="current">Current Bank</option>
+                                <option value="upstart">Upstart Bank</option>
+                                <option value="quontic">Quontic Bank</option>
+                                <option value="synchrony">Synchrony Bank</option>
+                                <option value="capitalone360">Capital One 360</option>
+                                <option value="allyonline">Ally Online Bank</option>
+                                <option value="discoveronline">Discover Online Bank</option>
+                                <option value="marcus">Marcus by Goldman Sachs</option>
                                 <option value="other">Other Bank</option>
                             </select>
                         </div>

@@ -12,7 +12,9 @@
             <div class="logo">Frosst<span>Bank</span></div>
             <div class="user-menu">
                 <div class="notification-icon">🔔</div>
-                <div class="user-profile">👤</div>
+                <div class="user-profile">
+                    <img id="userAvatar" src="https://via.placeholder.com/40" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;" />
+                </div>
             </div>
         </header>
 
@@ -20,14 +22,12 @@
             <div class="activity-header">
                 <h1>Account Activity</h1>
                 <div class="account-selector">
-                    <select class="account-dropdown">
-                        <option>Primary Checking (•••• 4567)</option>
-                        <option>Savings Account (•••• 8910)</option>
-                        <option>Credit Card (•••• 3456)</option>
+                    <select class="account-dropdown" id="accountDropdown">
+                        <option id="primaryAccount">Loading...</option>
                     </select>
                     <div class="current-balance">
                         <span class="balance-label">Available Balance:</span>
-                        <span class="balance-amount">$8,245.50</span>
+                        <span class="balance-amount" id="currentBalance">$0.00</span>
                     </div>
                 </div>
             </div>
@@ -74,7 +74,7 @@
                 <div class="result-count">Showing 25 of 87 transactions</div>
             </div>
 
-            <div class="transactions-list">
+            <div class="transactions-list" id="transactionsList">
                 <div class="transaction-header">
                     <div class="header-date">Date</div>
                     <div class="header-description">Description</div>
@@ -82,22 +82,8 @@
                     <div class="header-amount">Amount</div>
                     <div class="header-status">Status</div>
                 </div>
-
-                <div class="transaction-item">
-                    <div class="transaction-date">
-                        <div class="date-day">Jul 28</div>
-                        <div class="date-time">2:45 PM</div>
-                    </div>
-                    <div class="transaction-description">
-                        <div class="merchant">Amazon Marketplace</div>
-                        <div class="details">Electronics purchase</div>
-                    </div>
-                    <div class="transaction-category">
-                        <div class="category-badge shopping">Shopping</div>
-                    </div>
-                    <div class="transaction-amount negative">-$129.99</div>
-                    <div class="transaction-status completed">Completed</div>
-                </div>
+                <!-- Transactions will be loaded here dynamically -->
+            </div>
 
                 <div class="transaction-item">
                     <div class="transaction-date">
@@ -323,9 +309,42 @@
         });
       }
 
+      // Load user profile and transactions
+      async function loadUserData() {
+        try {
+          const user = getUserInfo();
+          if (!user) return;
+
+          // Update profile picture
+          const userAvatar = document.getElementById('userAvatar');
+          if (userAvatar && user.profilePicture) {
+            userAvatar.src = user.profilePicture;
+            userAvatar.alt = `${user.name}'s Profile`;
+          }
+
+          // Update account info
+          const primaryAccount = document.getElementById('primaryAccount');
+          const currentBalance = document.getElementById('currentBalance');
+          
+          if (primaryAccount) {
+            primaryAccount.textContent = `Primary Checking (•••• ${user.account.slice(-4)})`;
+          }
+          
+          if (currentBalance) {
+            currentBalance.textContent = `$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          }
+
+          // Load transactions
+          await fetchTransactions();
+          
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+
       // On page load, fetch and render user transactions
       document.addEventListener('DOMContentLoaded', function() {
-        fetchTransactions();
+        loadUserData();
       });
     </script>
 </body>

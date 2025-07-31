@@ -79,8 +79,7 @@
       <label for="account">Select Account:</label>
       <select id="account" required>
         <option value="">-- Choose an account --</option>
-        <option value="savings">Savings Account</option>
-        <option value="checking">Checking Account</option>
+        <option value="checking" id="checkingAccount">Loading...</option>
       </select>
 
       <label for="amount">Amount ($):</label>
@@ -97,13 +96,69 @@
   </div>
 
   <script>
+    // Check if user is authenticated
+    function checkAuth() {
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return token;
+    }
+
+    // Get user info from JWT token
+    function getUserInfo() {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) {
+        window.location.href = 'login.html';
+        return null;
+      }
+      return JSON.parse(userInfo);
+    }
+
+    // API helper function
+    async function apiCall(endpoint, options = {}) {
+      const token = checkAuth();
+      if (!token) return null;
+
+      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-1-sq1y.onrender.com';
+      const response = await fetch(`${backendUrl}/api${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('userInfo');
+        window.location.href = 'login.html';
+        return null;
+      }
+
+      return response.json();
+    }
+
+    // Load user account information
+    function loadUserAccount() {
+      const user = getUserInfo();
+      if (!user) return;
+
+      const checkingAccount = document.getElementById('checkingAccount');
+      if (checkingAccount) {
+        checkingAccount.textContent = `Checking Account (•••• ${user.account.slice(-4)}) - Balance: $${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      }
+    }
+
     const form = document.getElementById('depositForm');
     const account = document.getElementById('account');
     const amount = document.getElementById('amount');
     const success = document.getElementById('success');
     const error = document.getElementById('error');
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', async function(e) {
       e.preventDefault();
 
       const selectedAccount = account.value;
@@ -124,9 +179,49 @@
         return;
       }
 
-      // Simulate deposit
-      success.style.display = 'block';
-      form.reset();
+      try {
+        const user = getUserInfo();
+        if (!user) return;
+
+        // Create deposit transaction
+        const depositData = {
+          user: user.id,
+          date: new Date().toISOString().split('T')[0],
+          time: new Date().toLocaleTimeString(),
+          description: 'Deposit',
+          category: 'Deposit',
+          amount: depositAmount,
+          status: 'completed'
+        };
+
+        const result = await apiCall('/transactions', {
+          method: 'POST',
+          body: JSON.stringify(depositData)
+        });
+
+        if (result) {
+          success.style.display = 'block';
+          form.reset();
+          
+          // Update user balance in localStorage
+          const updatedUser = { ...user, balance: (user.balance || 0) + depositAmount };
+          localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+          
+          // Reload account info
+          loadUserAccount();
+        } else {
+          error.textContent = 'Deposit failed. Please try again.';
+        }
+        
+      } catch (error) {
+        console.error('Error processing deposit:', error);
+        error.textContent = 'Deposit failed. Please try again.';
+      }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadUserAccount();
     });
   </script>
 </body>

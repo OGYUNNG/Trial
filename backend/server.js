@@ -502,6 +502,187 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
+// Transfer endpoints
+app.post('/api/transfers', async (req, res) => {
+  try {
+    const { fromUserId, toUserId, amount, memo, type, bankName, accountNumber, routingNumber } = req.body;
+    
+    // Validate required fields
+    if (!fromUserId || !amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid transfer data' });
+    }
+
+    // Get sender user
+    const sender = await User.findByPk(fromUserId);
+    if (!sender) {
+      return res.status(404).json({ error: 'Sender not found' });
+    }
+
+    // Check if sender has sufficient balance
+    if (sender.balance < amount) {
+      return res.status(400).json({ error: 'Insufficient funds' });
+    }
+
+    // Create transfer record
+    const transferData = {
+      fromUserId,
+      amount,
+      memo: memo || '',
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString(),
+      status: 'pending',
+      type: type || 'internal'
+    };
+
+    if (type === 'internal' && toUserId) {
+      // Internal transfer to another user
+      const recipient = await User.findByPk(toUserId);
+      if (!recipient) {
+        return res.status(404).json({ error: 'Recipient not found' });
+      }
+      transferData.toUserId = toUserId;
+    } else if (type === 'external') {
+      // External transfer
+      transferData.bankName = bankName;
+      transferData.accountNumber = accountNumber;
+      transferData.routingNumber = routingNumber;
+    }
+
+    // Create transfer transaction
+    const transfer = await Transaction.create(transferData);
+    
+    // Generate transfer ID
+    const transferId = `TRX-${new Date().getFullYear()}-${String(transfer.id).padStart(3, '0')}`;
+    
+    res.json({ 
+      success: true, 
+      transferId,
+      message: 'Transfer submitted successfully',
+      transfer: {
+        id: transfer.id,
+        transferId,
+        amount,
+        status: 'pending',
+        type
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating transfer:', error);
+    res.status(500).json({ error: 'Failed to create transfer' });
+  }
+});
+
+// Get user transfers
+app.get('/api/transfers', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_this_in_production');
+    const userId = decoded.id;
+
+    const transactions = await Transaction.findAll();
+    const userTransfers = transactions.filter(tx => 
+      tx.userId === userId || tx.fromUserId === userId
+    );
+
+    res.json(userTransfers);
+  } catch (error) {
+    console.error('Error fetching transfers:', error);
+    res.status(500).json({ error: 'Failed to fetch transfers' });
+  }
+});
+
+// Approve transfer (admin only)
+app.put('/api/transfers/:id/approve', async (req, res) => {
+  try {
+    const transferId = parseInt(req.params.id);
+    
+    const transfer = await Transaction.findByPk(transferId);
+    if (!transfer) {
+      return res.status(404).json({ error: 'Transfer not found' });
+    }
+
+    if (transfer.status !== 'pending') {
+      return res.status(400).json({ error: 'Transfer is not pending' });
+    }
+
+    // Get sender and recipient
+    const sender = await User.findByPk(transfer.fromUserId);
+    if (!sender) {
+      return res.status(404).json({ error: 'Sender not found' });
+    }
+
+    // Update sender balance
+    sender.balance -= transfer.amount;
+    await sender.save();
+
+    // Update recipient balance if internal transfer
+    if (transfer.toUserId) {
+      const recipient = await User.findByPk(transfer.toUserId);
+      if (recipient) {
+        recipient.balance += transfer.amount;
+        await recipient.save();
+      }
+    }
+
+    // Update transfer status
+    transfer.status = 'completed';
+    await transfer.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Transfer approved and completed',
+      transfer: {
+        id: transfer.id,
+        amount: transfer.amount,
+        status: 'completed'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error approving transfer:', error);
+    res.status(500).json({ error: 'Failed to approve transfer' });
+  }
+});
+
+// Reject transfer (admin only)
+app.put('/api/transfers/:id/reject', async (req, res) => {
+  try {
+    const transferId = parseInt(req.params.id);
+    
+    const transfer = await Transaction.findByPk(transferId);
+    if (!transfer) {
+      return res.status(404).json({ error: 'Transfer not found' });
+    }
+
+    if (transfer.status !== 'pending') {
+      return res.status(400).json({ error: 'Transfer is not pending' });
+    }
+
+    // Update transfer status
+    transfer.status = 'rejected';
+    await transfer.save();
+
+    res.json({ 
+      success: true, 
+      message: 'Transfer rejected',
+      transfer: {
+        id: transfer.id,
+        amount: transfer.amount,
+        status: 'rejected'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error rejecting transfer:', error);
+    res.status(500).json({ error: 'Failed to reject transfer' });
+  }
+});
+
 // Helper function
 function getRandomColor() {
   const colors = ['4F46E5', '059669', 'DC2626', '7C3AED', 'EA580C', 'BE185D', '0891B2', '16A34A'];

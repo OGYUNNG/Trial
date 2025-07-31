@@ -11,9 +11,9 @@
 <body>
   <div class="dashboard-container">
     <div class="profile">
-      <img src="https://via.placeholder.com/60" alt="Profile" class="avatar" />
+      <img id="userAvatar" src="https://via.placeholder.com/60" alt="Profile" class="avatar" />
       <div>
-        <h2>Account: <span class="normal-case">John Doe</span> <span class="account-id">16855894866</span> ✅</h2>
+        <h2>Account: <span class="normal-case" id="userName">John Doe</span> <span class="account-id" id="userAccount">16855894866</span> ✅</h2>
       </div>
     </div>
     <div>
@@ -89,11 +89,11 @@
       });
 
       // Join user's personal room
-      socket.emit('join', { userId: user._id });
+      socket.emit('join', { userId: user.id });
 
       // Listen for incoming messages
       socket.on('message', (message) => {
-        if (message.from !== user._id) {
+        if (message.from !== user.id) {
           addMessage(message.content, 'bot');
         }
       });
@@ -144,7 +144,19 @@
       const user = getUserInfo();
       if (!user) return;
 
-      document.querySelector('.profile h2').innerHTML = `Account: <span class="normal-case">${user.name}</span> <span class="account-id">${user.account}</span> ✅`;
+      // Update profile picture
+      const userAvatar = document.getElementById('userAvatar');
+      if (userAvatar && user.profilePicture) {
+        userAvatar.src = user.profilePicture;
+        userAvatar.alt = `${user.name}'s Profile`;
+      }
+
+      // Update user name and account
+      const userName = document.getElementById('userName');
+      const userAccount = document.getElementById('userAccount');
+      
+      if (userName) userName.textContent = user.name;
+      if (userAccount) userAccount.textContent = user.account;
     }
 
     function loanUnavailable() {
@@ -171,7 +183,7 @@
           // Send message via Socket.io
           if (socket && socket.connected) {
             socket.emit('message', {
-              from: currentUser._id,
+              from: currentUser.id,
               to: 'admin', // Send to admin
               content: message,
               timestamp: new Date().toISOString()
@@ -205,7 +217,7 @@
       if (socket && socket.connected) {
         socket.emit('chatNotification', {
           type: 'dashboard',
-          userId: user._id,
+          userId: user.id,
           userName: user.name,
           userAccount: user.account,
           timestamp: new Date().toISOString()

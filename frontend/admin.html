@@ -137,22 +137,17 @@
       <section id="transfers" class="mb-10">
         <h2 class="text-xl font-bold mb-4">Transfer Requests</h2>
         <div class="bg-white rounded shadow p-6">
-          <div class="space-y-4" id="transferRequests">
-            <div class="border rounded p-4 bg-yellow-50">
-              <div class="flex justify-between items-start">
-                <div>
-                  <h3 class="font-semibold">Transfer Request #TRX-2025-001</h3>
-                  <p class="text-sm text-gray-600">From: Primary Checking •••• 4567</p>
-                  <p class="text-sm text-gray-600">To: John Smith •••• 3456</p>
-                  <p class="text-sm text-gray-600">Amount: $500.00</p>
-                  <p class="text-sm text-gray-600">Status: Pending</p>
-                </div>
-                <div class="flex space-x-2">
-                  <button onclick="approveTransfer('TRX-2025-001')" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Approve</button>
-                  <button onclick="rejectTransfer('TRX-2025-001')" class="bg-red-500 text-white px-3 py-1 rounded text-sm">Reject</button>
-                </div>
-              </div>
+          <div class="mb-4 flex justify-between items-center">
+            <div class="flex space-x-2">
+              <button onclick="loadTransferRequests()" class="bg-blue-500 text-white px-3 py-1 rounded text-sm">Refresh</button>
+              <button onclick="exportTransfers()" class="bg-green-500 text-white px-3 py-1 rounded text-sm">Export</button>
             </div>
+            <div class="text-sm text-gray-600">
+              <span id="transferStats">Loading...</span>
+            </div>
+          </div>
+          <div class="space-y-4" id="transferRequests">
+            <!-- Transfer requests will be loaded here dynamically -->
           </div>
         </div>
       </section>
@@ -328,6 +323,7 @@
       // Load data from backend
       loadUsers();
       loadTransactions();
+      loadTransferRequests();
       updateActiveChatsDisplay();
       initializeSocket(); // Initialize Socket.io
       
@@ -634,42 +630,140 @@
       }, 3000);
     }
 
-    function approveTransfer(transferId) {
-      const transferElement = document.querySelector(`[onclick="approveTransfer('${transferId}')"]`).closest('.border');
-      transferElement.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="font-semibold">Transfer Request #${transferId}</h3>
-            <p class="text-sm text-gray-600">Status: <span class="text-green-600 font-semibold">Approved</span></p>
-          </div>
-          <div class="text-green-600 font-semibold">✓ Approved</div>
-        </div>
-      `;
-      
-      // Add message to chat
-      const chatBox = document.getElementById('chatBox');
-      const msgHTML = `<div class="mb-2 text-right text-green-800"><span class="bg-green-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Transfer ${transferId} has been approved and processed.</span></div>`;
-      chatBox.innerHTML += msgHTML;
-      chatBox.scrollTop = chatBox.scrollHeight;
+    // Load transfer requests
+    async function loadTransferRequests() {
+      try {
+        const transfers = await apiCall('/transfers') || [];
+        renderTransferRequests(transfers);
+        updateTransferStats(transfers);
+      } catch (error) {
+        console.error('Error loading transfers:', error);
+        showNotification('Error loading transfer requests', 'error');
+      }
     }
 
-    function rejectTransfer(transferId) {
-      const transferElement = document.querySelector(`[onclick="rejectTransfer('${transferId}')"]`).closest('.border');
-      transferElement.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="font-semibold">Transfer Request #${transferId}</h3>
-            <p class="text-sm text-gray-600">Status: <span class="text-red-600 font-semibold">Rejected</span></p>
-          </div>
-          <div class="text-red-600 font-semibold">✗ Rejected</div>
-        </div>
-      `;
+    // Render transfer requests
+    function renderTransferRequests(transfers) {
+      const container = document.getElementById('transferRequests');
+      if (!container) return;
+
+      if (transfers.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-500 py-8">No transfer requests found.</div>';
+        return;
+      }
+
+      container.innerHTML = '';
       
-      // Add message to chat
-      const chatBox = document.getElementById('chatBox');
-      const msgHTML = `<div class="mb-2 text-right text-red-800"><span class="bg-red-100 px-3 py-2 rounded inline-block"><strong>System:</strong> Transfer ${transferId} has been rejected. Please contact the user for more details.</span></div>`;
-      chatBox.innerHTML += msgHTML;
-      chatBox.scrollTop = chatBox.scrollHeight;
+      transfers.forEach(transfer => {
+        const transferElement = document.createElement('div');
+        transferElement.className = `border rounded p-4 ${transfer.status === 'pending' ? 'bg-yellow-50' : transfer.status === 'completed' ? 'bg-green-50' : 'bg-red-50'}`;
+        
+        const statusColor = transfer.status === 'pending' ? 'text-yellow-600' : transfer.status === 'completed' ? 'text-green-600' : 'text-red-600';
+        const statusBg = transfer.status === 'pending' ? 'bg-yellow-100' : transfer.status === 'completed' ? 'bg-green-100' : 'bg-red-100';
+        
+        transferElement.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h3 class="font-semibold">Transfer Request #${transfer.transferId || `TRX-${transfer.id}`}</h3>
+              <p class="text-sm text-gray-600">From: ${transfer.fromUser ? transfer.fromUser.name : 'Unknown'} (•••• ${transfer.fromUser ? transfer.fromUser.account.slice(-4) : '****'})</p>
+              ${transfer.type === 'internal' && transfer.toUser ? 
+                `<p class="text-sm text-gray-600">To: ${transfer.toUser.name} (•••• ${transfer.toUser.account.slice(-4)})</p>` : 
+                transfer.type === 'external' ? 
+                `<p class="text-sm text-gray-600">To: ${transfer.bankName} (External Transfer)</p>` : 
+                '<p class="text-sm text-gray-600">To: External Account</p>'
+              }
+              <p class="text-sm text-gray-600">Amount: $${transfer.amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+              <p class="text-sm text-gray-600">Date: ${transfer.date} ${transfer.time}</p>
+              ${transfer.memo ? `<p class="text-sm text-gray-600">Memo: ${transfer.memo}</p>` : ''}
+              <span class="inline-block px-2 py-1 rounded text-xs ${statusBg} ${statusColor} font-semibold">${transfer.status.charAt(0).toUpperCase() + transfer.status.slice(1)}</span>
+            </div>
+            <div class="flex space-x-2 ml-4">
+              ${transfer.status === 'pending' ? `
+                <button onclick="approveTransfer(${transfer.id})" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">Approve</button>
+                <button onclick="rejectTransfer(${transfer.id})" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">Reject</button>
+              ` : `
+                <span class="text-sm ${statusColor} font-semibold">${transfer.status === 'completed' ? '✓ Approved' : '✗ Rejected'}</span>
+              `}
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(transferElement);
+      });
+    }
+
+    // Update transfer statistics
+    function updateTransferStats(transfers) {
+      const statsElement = document.getElementById('transferStats');
+      if (!statsElement) return;
+
+      const pending = transfers.filter(t => t.status === 'pending').length;
+      const completed = transfers.filter(t => t.status === 'completed').length;
+      const rejected = transfers.filter(t => t.status === 'rejected').length;
+      const total = transfers.length;
+
+      statsElement.textContent = `${total} total • ${pending} pending • ${completed} completed • ${rejected} rejected`;
+    }
+
+    // Approve transfer
+    async function approveTransfer(transferId) {
+      if (!confirm('Are you sure you want to approve this transfer?')) return;
+      
+      try {
+        const result = await apiCall(`/transfers/${transferId}/approve`, { method: 'PUT' });
+        if (result.success) {
+          showNotification('Transfer approved successfully!', 'success');
+          loadTransferRequests();
+          loadUsers(); // Refresh user balances
+        } else {
+          showNotification('Failed to approve transfer', 'error');
+        }
+      } catch (error) {
+        console.error('Error approving transfer:', error);
+        showNotification('Error approving transfer', 'error');
+      }
+    }
+
+    // Reject transfer
+    async function rejectTransfer(transferId) {
+      if (!confirm('Are you sure you want to reject this transfer?')) return;
+      
+      try {
+        const result = await apiCall(`/transfers/${transferId}/reject`, { method: 'PUT' });
+        if (result.success) {
+          showNotification('Transfer rejected successfully!', 'success');
+          loadTransferRequests();
+        } else {
+          showNotification('Failed to reject transfer', 'error');
+        }
+      } catch (error) {
+        console.error('Error rejecting transfer:', error);
+        showNotification('Error rejecting transfer', 'error');
+      }
+    }
+
+    // Export transfers
+    async function exportTransfers() {
+      try {
+        const transfers = await apiCall('/transfers') || [];
+        const csv = 'Transfer ID,From,To,Amount,Status,Date,Type,Memo\n' +
+          transfers.map(t => 
+            `${t.transferId || t.id},${t.fromUser ? t.fromUser.name : 'Unknown'},${t.toUser ? t.toUser.name : t.bankName || 'External'},${t.amount},${t.status},${t.date},${t.type},${t.memo || ''}`
+          ).join('\n');
+        
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transfers.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showNotification('Transfers exported successfully!', 'success');
+      } catch (error) {
+        console.error('Error exporting transfers:', error);
+        showNotification('Error exporting transfers', 'error');
+      }
     }
 
     // Simulate incoming chat messages (in real app, this would be WebSocket)

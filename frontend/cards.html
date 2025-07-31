@@ -12,7 +12,9 @@
             <div class="logo">Frosst<span>Bank</span></div>
             <div class="user-menu">
                 <div class="notification-icon">🔔</div>
-                <div class="user-profile">👤</div>
+                <div class="user-profile">
+                    <img id="userAvatar" src="https://via.placeholder.com/40" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;" />
+                </div>
             </div>
         </header>
 
@@ -22,17 +24,17 @@
                     <div class="card-inner">
                         <div class="card-front">
                             <div class="card-type">VISA</div>
-                            <div class="card-number">•••• •••• •••• 1234</div>
-                            <div class="card-details">
-                                <div>
-                                    <div class="card-expiry">EXPIRY DATE</div>
-                                    <div>12/25</div>
-                                </div>
-                                <div>
-                                    <div class="card-name">CARD HOLDER</div>
-                                    <div>JOHN DOE</div>
-                                </div>
-                            </div>
+                                            <div class="card-number" id="cardNumber">•••• •••• •••• 1234</div>
+                <div class="card-details">
+                    <div>
+                        <div class="card-expiry">EXPIRY DATE</div>
+                        <div id="cardExpiry">12/25</div>
+                    </div>
+                    <div>
+                        <div class="card-name">CARD HOLDER</div>
+                        <div id="cardHolder">JOHN DOE</div>
+                    </div>
+                </div>
                         </div>
                         <div class="card-back">
                             <div class="card-stripe"></div>
@@ -48,7 +50,7 @@
             <div class="card-stats">
                 <div class="stat-item">
                     <div class="stat-label">Available Balance</div>
-                    <div class="stat-value">$5,250.00</div>
+                    <div class="stat-value" id="cardBalance">$0.00</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Spent this month</div>

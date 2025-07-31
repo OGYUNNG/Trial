@@ -22,11 +22,11 @@ socket = io(backendUrl, {
   });
 
   // Join user's personal room
-  socket.emit('join', { userId: currentUser._id });
+  socket.emit('join', { userId: currentUser.id });
 
   // Listen for incoming messages
   socket.on('message', (message) => {
-    if (message.from !== currentUser._id) {
+    if (message.from !== currentUser.id) {
       addChatMessage(message.content, 'admin');
     }
   });
@@ -49,6 +49,9 @@ socket = io(backendUrl, {
 // Initialize Socket.io on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeSocket();
+  loadUserAccounts();
+  loadAllUsers();
+  setupTransferForm();
 });
 
 // Bank selection functionality
@@ -250,7 +253,7 @@ function notifyAdminOfTransferChat() {
     if (socket && socket.connected) {
         socket.emit('chatNotification', {
             type: 'transfer',
-            userId: currentUser._id,
+            userId: currentUser.id,
             userName: currentUser.name,
             userAccount: currentUser.account,
             transferId: transferId,
@@ -283,14 +286,220 @@ function sendTransferMessageToAdmin(message) {
     localStorage.setItem('newTransferMessage', 'true');
 }
 
-function checkForAdminTransferResponse() {
-    const adminResponse = localStorage.getItem('adminResponseToTransferChat');
-    if (adminResponse) {
+    function checkForAdminTransferResponse() {
+      const adminResponse = localStorage.getItem('adminResponseToTransferChat');
+      if (adminResponse) {
         const response = JSON.parse(adminResponse);
         addChatMessage(response.message, 'admin');
         localStorage.removeItem('adminResponseToTransferChat');
+      }
     }
-}
+
+    // Load current user's accounts
+    async function loadUserAccounts() {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+          console.error('No user info found');
+          return;
+        }
+
+        const user = JSON.parse(userInfo);
+        const accountSelector = document.getElementById('accountSelector');
+        
+        if (!accountSelector) return;
+
+        // Create account options for the current user
+        const accountHTML = `
+          <div class="account-option active" data-account-id="${user.id}">
+            <div class="account-type">Primary Checking</div>
+            <div class="account-number">•••• ${user.account.slice(-4)}</div>
+            <div class="account-balance">$${(user.balance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          </div>
+        `;
+        
+        accountSelector.innerHTML = accountHTML;
+        
+        // Add click handlers for account selection
+        const accountOptions = accountSelector.querySelectorAll('.account-option');
+        accountOptions.forEach(option => {
+          option.addEventListener('click', function() {
+            accountOptions.forEach(opt => opt.classList.remove('active'));
+            this.classList.add('active');
+          });
+        });
+        
+      } catch (error) {
+        console.error('Error loading user accounts:', error);
+      }
+    }
+
+    // Load all users for internal transfers
+    async function loadAllUsers() {
+      try {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-1-sq1y.onrender.com';
+        const response = await fetch(`${backendUrl}/api/users`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+
+        const users = await response.json();
+        const currentUser = JSON.parse(localStorage.getItem('userInfo'));
+        
+        // Filter out the current user and admin users
+        const otherUsers = users.filter(user => 
+          user.id !== currentUser.id && user.role !== 'admin'
+        );
+
+        const userRecipientSelect = document.getElementById('user-recipient');
+        if (userRecipientSelect) {
+          userRecipientSelect.innerHTML = '<option value="">Select a user</option>';
+          
+          otherUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.name} (•••• ${user.account.slice(-4)})`;
+            userRecipientSelect.appendChild(option);
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    }
+
+    // Setup transfer form functionality
+    function setupTransferForm() {
+      const recipientSelect = document.getElementById('recipient');
+      const usersSelection = document.getElementById('users-selection');
+      const bankSelection = document.getElementById('bank-selection');
+      const transferForm = document.querySelector('.transfer-form');
+
+      if (recipientSelect) {
+        recipientSelect.addEventListener('change', function() {
+          const selectedValue = this.value;
+          
+          // Hide all selection divs
+          usersSelection.style.display = 'none';
+          bankSelection.style.display = 'none';
+          
+          // Show appropriate selection based on choice
+          if (selectedValue === 'users') {
+            usersSelection.style.display = 'block';
+          } else if (selectedValue === 'external') {
+            bankSelection.style.display = 'block';
+          }
+        });
+      }
+
+      if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          handleTransferSubmission();
+        });
+      }
+    }
+
+    // Handle transfer form submission
+    async function handleTransferSubmission() {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        const recipientType = document.getElementById('recipient').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const memo = document.getElementById('memo').value;
+        
+        if (!amount || amount <= 0) {
+          alert('Please enter a valid amount');
+          return;
+        }
+
+        if (userInfo.balance < amount) {
+          alert('Insufficient funds');
+          return;
+        }
+
+        let transferData = {
+          fromUserId: userInfo.id,
+          amount: amount,
+          memo: memo,
+          date: new Date().toISOString(),
+          status: 'pending'
+        };
+
+        if (recipientType === 'users') {
+          const selectedUserId = document.getElementById('user-recipient').value;
+          if (!selectedUserId) {
+            alert('Please select a recipient');
+            return;
+          }
+          transferData.toUserId = selectedUserId;
+          transferData.type = 'internal';
+        } else if (recipientType === 'external') {
+          const bankName = document.getElementById('bank-name').value;
+          const accountNumber = document.getElementById('account-number').value;
+          const routingNumber = document.getElementById('routing-number').value;
+          
+          if (!bankName || !accountNumber || !routingNumber) {
+            alert('Please fill in all external transfer details');
+            return;
+          }
+          
+          transferData.type = 'external';
+          transferData.bankName = bankName;
+          transferData.accountNumber = accountNumber;
+          transferData.routingNumber = routingNumber;
+        } else {
+          alert('Please select a recipient type');
+          return;
+        }
+
+        // Send transfer request to backend
+        const token = localStorage.getItem('jwtToken');
+        const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-1-sq1y.onrender.com';
+        
+        const response = await fetch(`${backendUrl}/api/transfers`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(transferData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert('Transfer submitted successfully! Transfer ID: ' + result.transferId);
+          
+          // Notify admin of transfer request
+          notifyAdminOfTransferChat();
+          
+          // Reset form
+          document.querySelector('.transfer-form').reset();
+          document.getElementById('users-selection').style.display = 'none';
+          document.getElementById('bank-selection').style.display = 'none';
+          
+        } else {
+          const error = await response.json();
+          alert('Transfer failed: ' + (error.message || 'Unknown error'));
+        }
+        
+      } catch (error) {
+        console.error('Error submitting transfer:', error);
+        alert('Transfer failed. Please try again.');
+      }
+    }
 
 // Check for admin responses every 2 seconds (fallback)
 setInterval(checkForAdminTransferResponse, 2000);
