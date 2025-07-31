@@ -515,10 +515,18 @@ io.on('connection', (socket) => {
   socket.on('join', (data) => {
     socket.join(data.userId);
     console.log(`User ${data.userId} joined their room`);
+    
+    // If admin is joining, also join admin room
+    if (data.userId === 'admin') {
+      socket.join('admin');
+      console.log('Admin joined admin room');
+    }
   });
   
   socket.on('message', async (message) => {
     try {
+      console.log('Received message:', message);
+      
       // Store message in database
       await Message.create({
         fromId: message.from,
@@ -528,10 +536,19 @@ io.on('connection', (socket) => {
       });
       
       // Broadcast to recipient
-      socket.to(message.to).emit('message', message);
+      io.to(message.to).emit('message', message);
+      console.log(`Message sent from ${message.from} to ${message.to}`);
     } catch (error) {
       console.error('Error saving message:', error);
     }
+  });
+  
+  // Handle chat notifications (new chat sessions)
+  socket.on('chatNotification', (notification) => {
+    console.log('Chat notification received:', notification);
+    // Broadcast to admin room
+    io.to('admin').emit('chatNotification', notification);
+    console.log('Chat notification sent to admin');
   });
   
   socket.on('disconnect', () => {

@@ -216,7 +216,9 @@
       // Initialize Socket.io connection (for anonymous chat)
       function initializeSocket() {
         // Connect to Socket.io server without authentication
-        socket = io('http://localhost:4000');
+        // Determine backend URL based on environment
+      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-1-sq1y.onrender.com';
+      socket = io(backendUrl);
 
         // Listen for incoming messages
         socket.on('message', (message) => {

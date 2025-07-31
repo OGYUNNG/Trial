@@ -330,17 +330,29 @@
       loadTransactions();
       updateActiveChatsDisplay();
       initializeSocket(); // Initialize Socket.io
+      
+      // Add chat input event listener
+      const chatInput = document.getElementById('chatInput');
+      if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+      }
     });
 
     // Load users from backend API
     async function loadUsers() {
       try {
+        console.log('Loading users from API...');
         users = await apiCall('/users') || [];
+        console.log('Loaded users:', users);
         renderUsers();
         updateUserStatistics();
       } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Error loading users', 'error');
+        showNotification(`Error loading users: ${error.message || 'Unknown error'}`, 'error');
       }
     }
 
@@ -526,21 +538,34 @@
     async function deleteUser(userId) {
       if (!confirm('Are you sure you want to delete this user?')) return;
       
+      console.log('Attempting to delete user with ID:', userId);
+      
       try {
-        await apiCall(`/users/${userId}`, { method: 'DELETE' });
+        const result = await apiCall(`/users/${userId}`, { method: 'DELETE' });
+        console.log('Delete result:', result);
         showNotification('User deleted successfully!', 'success');
         loadUsers();
       } catch (error) {
         console.error('Error deleting user:', error);
-        showNotification('Error deleting user', 'error');
+        showNotification(`Error deleting user: ${error.message || 'Unknown error'}`, 'error');
       }
     }
 
     let currentEditIndex = null;
     async function openEdit(userId) {
+      console.log('Attempting to edit user with ID:', userId);
+      console.log('Available users:', users);
+      
       currentEditIndex = userId;
       const user = users.find(u => u._id === userId);
-      if (!user) return;
+      
+      if (!user) {
+        console.error('User not found with ID:', userId);
+        showNotification('User not found', 'error');
+        return;
+      }
+
+      console.log('Found user for editing:', user);
 
       document.getElementById('editName').value = user.name;
       document.getElementById('editEmail').value = user.email;
@@ -569,8 +594,11 @@
         return;
       }
 
+      console.log('Attempting to update user with ID:', currentEditIndex);
+      console.log('Update data:', { name, email, account, profilePicture });
+
       try {
-        await apiCall(`/users/${currentEditIndex}`, {
+        const result = await apiCall(`/users/${currentEditIndex}`, {
           method: 'PUT',
           body: JSON.stringify({
             name,
@@ -580,12 +608,13 @@
           })
         });
 
+        console.log('Update result:', result);
         showNotification('User updated successfully!', 'success');
         loadUsers();
-      closeEdit();
+        closeEdit();
       } catch (error) {
         console.error('Error updating user:', error);
-        showNotification('Error updating user', 'error');
+        showNotification(`Error updating user: ${error.message || 'Unknown error'}`, 'error');
       }
     }
 
@@ -684,11 +713,13 @@
 
       // Listen for chat notifications
       socket.on('chatNotification', (notification) => {
+        console.log('Admin received chat notification:', notification);
         handleChatNotification(notification);
       });
 
       // Listen for incoming messages
       socket.on('message', (message) => {
+        console.log('Admin received message:', message);
         handleIncomingMessage(message);
       });
 
@@ -709,6 +740,7 @@
 
     // Handle chat notifications from users
     function handleChatNotification(notification) {
+      console.log('Handling chat notification:', notification);
       const { type, userId, userName, userAccount, transferId, timestamp } = notification;
       
       // Add to active chats
@@ -720,6 +752,8 @@
         timestamp,
         messages: []
       });
+
+      console.log('Active chats after adding:', activeChats);
 
       // Update display
       updateActiveChatsDisplay();
@@ -749,6 +783,7 @@
 
     // Handle incoming messages
     function handleIncomingMessage(message) {
+      console.log('Handling incoming message:', message);
       const { from, content, timestamp } = message;
       
       // Add message to active chat
@@ -760,6 +795,9 @@
           timestamp
         });
         activeChats.set(from, chat);
+        console.log('Updated active chat for user:', from);
+      } else {
+        console.log('No active chat found for user:', from);
       }
 
       // Display message in chat box
@@ -997,15 +1035,19 @@
       
       // Send message to all active chat sessions via Socket.io
       if (socket && socket.connected) {
+        console.log('Sending message via Socket.io to active chats:', activeChats);
         activeChats.forEach((chat, userId) => {
-          socket.emit('message', {
+          const messageData = {
             from: 'admin',
             to: userId,
             content: message,
             timestamp: new Date().toISOString()
-          });
+          };
+          console.log('Sending message:', messageData);
+          socket.emit('message', messageData);
         });
       } else {
+        console.log('Socket.io not connected, using localStorage fallback');
         // Fallback to localStorage
         const response = {
           message: message,
