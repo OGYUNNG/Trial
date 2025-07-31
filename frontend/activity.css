@@ -398,3 +398,228 @@ footer {
 .footer-link:hover {
     color: var(--primary);
 }
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 10px 0;
+    }
+
+    .logo {
+        font-size: 20px;
+    }
+
+    .user-menu {
+        gap: 15px;
+    }
+
+    .activity-container {
+        padding: 20px;
+    }
+
+    .activity-header h1 {
+        font-size: 24px;
+        text-align: center;
+    }
+
+    .account-selector {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .account-dropdown {
+        width: 100%;
+    }
+
+    .current-balance {
+        text-align: center;
+    }
+
+    .activity-filters {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .filter-group {
+        margin-bottom: 0;
+    }
+
+    .filter-control {
+        width: 100%;
+    }
+
+    .filter-btn, .export-btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .activity-search {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .search-container {
+        width: 100%;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    .search-btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .result-count {
+        text-align: center;
+    }
+
+    /* Make table responsive */
+    .transactions-list {
+        overflow-x: auto;
+    }
+
+    .transaction-header {
+        min-width: 600px;
+        font-size: 12px;
+    }
+
+    .transaction-item {
+        min-width: 600px;
+        font-size: 12px;
+    }
+
+    .header-date, .header-description, .header-category, .header-amount, .header-status {
+        padding: 8px 4px;
+    }
+
+    .transaction-date, .transaction-description, .transaction-category, .transaction-amount, .transaction-status {
+        padding: 8px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 5px;
+    }
+
+    .activity-container {
+        padding: 15px;
+    }
+
+    .activity-header h1 {
+        font-size: 20px;
+    }
+
+    .logo {
+        font-size: 18px;
+    }
+
+    .user-menu {
+        gap: 10px;
+    }
+
+    .notification-icon, .user-profile {
+        width: 35px;
+        height: 35px;
+    }
+
+    .account-dropdown {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .balance-label {
+        font-size: 14px;
+    }
+
+    .balance-amount {
+        font-size: 16px;
+    }
+
+    .filter-control {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .filter-btn, .export-btn {
+        font-size: 14px;
+        padding: 10px 15px;
+    }
+
+    .search-input {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+
+    .search-btn {
+        font-size: 14px;
+        padding: 10px 15px;
+    }
+
+    .transaction-header {
+        min-width: 500px;
+        font-size: 11px;
+    }
+
+    .transaction-item {
+        min-width: 500px;
+        font-size: 11px;
+    }
+
+    .header-date, .header-description, .header-category, .header-amount, .header-status {
+        padding: 6px 3px;
+    }
+
+    .transaction-date, .transaction-description, .transaction-category, .transaction-amount, .transaction-status {
+        padding: 6px 3px;
+    }
+
+    .merchant {
+        font-size: 12px;
+    }
+
+    .details {
+        font-size: 10px;
+    }
+
+    .category-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    .transaction-amount {
+        font-size: 12px;
+    }
+
+    .transaction-status {
+        font-size: 10px;
+    }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 360px) {
+    .transaction-header {
+        min-width: 450px;
+    }
+
+    .transaction-item {
+        min-width: 450px;
+    }
+
+    .activity-header h1 {
+        font-size: 18px;
+    }
+
+    .logo {
+        font-size: 16px;
+    }
+}
