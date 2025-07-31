@@ -463,7 +463,7 @@
             await apiCall('/transactions', {
               method: 'POST',
               body: JSON.stringify({
-                user: newUser._id,
+                user: newUser.id,
                 date: new Date().toISOString().split('T')[0],
                 time: new Date().toLocaleTimeString(),
                 description: 'Initial deposit',
@@ -519,8 +519,8 @@
             <td class="p-3 font-bold text-green-600">$${user.balance ? user.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0.00'}</td>
             <td class="p-3">
               <div class="flex space-x-2">
-                <button onclick="openEdit('${user._id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
-                <button onclick="deleteUser('${user._id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                <button onclick="openEdit('${user.id}')" class="text-indigo-600 hover:text-indigo-800 font-medium">Edit</button>
+                <button onclick="deleteUser('${user.id}')" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
               </div>
             </td>
           </tr>
@@ -553,7 +553,7 @@
       console.log('Available users:', users);
       
       currentEditIndex = userId;
-      const user = users.find(u => u._id === userId);
+              const user = users.find(u => u.id === userId);
       
       if (!user) {
         console.error('User not found with ID:', userId);
@@ -1304,8 +1304,8 @@
             <td class="p-2 font-bold ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}">${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
             <td class="p-2"><span class="px-2 py-1 rounded text-xs ${tx.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</span></td>
             <td class="p-2">
-              <button onclick="editTransaction('${tx._id}')" class="text-indigo-600 hover:underline mr-2">Edit</button>
-              <button onclick="deleteTransaction('${tx._id}')" class="text-red-600 hover:underline">Delete</button>
+                              <button onclick="editTransaction('${tx.id}')" class="text-indigo-600 hover:underline mr-2">Edit</button>
+                <button onclick="deleteTransaction('${tx.id}')" class="text-red-600 hover:underline">Delete</button>
             </td>
           </tr>
         `;
@@ -1340,7 +1340,7 @@
         await apiCall('/transactions', {
           method: 'POST',
           body: JSON.stringify({
-            user: user._id,
+            user: user.id,
             date: tx.date,
             time: tx.time,
             description: tx.description,
@@ -1363,7 +1363,7 @@
     async function editTransaction(id) {
       try {
         const transactions = await apiCall('/transactions');
-        const tx = transactions.find(t => t._id === id);
+        const tx = transactions.find(t => t.id === id);
         if (!tx) return;
 
         // Fill form with tx data

@@ -198,7 +198,7 @@
                 
                 const data = await response.json();
                 
-                if (data._id) {
+                if (data.id) {
                     testUsers.push(data);
                     testResults.userCreation = { status: 'success', message: 'User created successfully' };
                     resultDiv.innerHTML = `
@@ -294,7 +294,7 @@
                     email: user.email
                 };
                 
-                const response = await fetch(`http://localhost:4000/api/users/${user._id}`, {
+                const response = await fetch(`http://localhost:4000/api/users/${user.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -305,7 +305,7 @@
                 
                 const data = await response.json();
                 
-                if (data._id) {
+                if (data.id) {
                     testResults.userUpdate = { status: 'success', message: 'User updated successfully' };
                     resultDiv.innerHTML = `
                         <div class="success">
@@ -346,7 +346,7 @@
             try {
                 const user = testUsers[testUsers.length - 1];
                 
-                const response = await fetch(`http://localhost:4000/api/users/${user._id}`, {
+                const response = await fetch(`http://localhost:4000/api/users/${user.id}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${adminToken}`

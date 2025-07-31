@@ -232,7 +232,7 @@ function sendChatMessage() {
     // Send message via Socket.io
     if (socket && socket.connected) {
         socket.emit('message', {
-            from: currentUser._id,
+            from: currentUser.id,
             to: 'admin',
             content: message,
             timestamp: new Date().toISOString(),
