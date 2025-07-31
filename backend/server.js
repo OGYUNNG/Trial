@@ -775,7 +775,7 @@ io.on('connection', (socket) => {
     console.log(`User ${data.userId} joined their room`);
     
     // If admin is joining, also join admin room
-    if (data.userId === 'admin') {
+    if (data.userId === 'admin' || data.isAdmin === true || data.adminId === 'admin') {
       socket.join('admin');
       console.log('Admin joined admin room');
     }
