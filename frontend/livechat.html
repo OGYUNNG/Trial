@@ -115,12 +115,17 @@
 
       currentUser = JSON.parse(userInfo);
       
-      // Connect to Socket.io server
-      socket = io('http://localhost:4000', {
-        auth: {
-          token: localStorage.getItem('jwtToken')
-        }
-      });
+      // Determine backend URL based on environment
+const backendSocketUrl = window.location.hostname === 'localhost'
+  ? 'http://localhost:4000'
+  : 'https://trial-1-sq1y.onrender.com';
+
+// Connect to Socket.io server
+socket = io(backendSocketUrl, {
+  auth: {
+    token: localStorage.getItem('jwtToken')
+  }
+});
 
       // Join user's personal room
       socket.emit('join', { userId: currentUser._id });

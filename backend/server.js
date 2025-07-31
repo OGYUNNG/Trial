@@ -80,8 +80,17 @@ const sequelize = {
 };
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: 'https://trial-2-5mv8.onrender.com'
-  , methods: ['GET', 'POST', 'PUT', 'DELETE'] } });
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : [
+          'https://trial-2-5mv8.onrender.com',
+          'http://localhost:3000'
+        ],
+    methods: ['GET', 'POST']
+  }
+});
 
 // CORS configuration for production
 
