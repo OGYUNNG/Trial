@@ -363,22 +363,26 @@ app.put('/api/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Update user fields
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.account = account || user.account;
-    user.profilePicture = profilePicture || user.profilePicture;
+    // Update user using database method
+    const updatedUser = await db.updateUser(userId, {
+      name: name || user.name,
+      email: email || user.email,
+      account: account || user.account,
+      profilePicture: profilePicture || user.profilePicture
+    });
     
-    await user.save();
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'Failed to update user' });
+    }
     
     res.json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      account: user.account,
-      balance: user.balance,
-      profilePicture: user.profilePicture
+      _id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      account: updatedUser.account,
+      balance: updatedUser.balance,
+      profilePicture: updatedUser.profilePicture
     });
   } catch (error) {
     console.error('Error updating user:', error);
@@ -396,7 +400,12 @@ app.delete('/api/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    await user.destroy();
+    // Delete user using database method
+    const success = await db.deleteUser(userId);
+    
+    if (!success) {
+      return res.status(404).json({ error: 'Failed to delete user' });
+    }
     
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
