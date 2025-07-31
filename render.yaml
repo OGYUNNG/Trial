@@ -26,4 +26,4 @@ services:
     staticPublishPath: ./frontend
     envVars:
       - key: BACKEND_URL
-        value: https://trial-2-5mv8-backend.onrender.com 
+        value: https://trial-2-5mv8.onrender.com 
