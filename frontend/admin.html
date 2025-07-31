@@ -18,11 +18,11 @@
         <a href="#users" class="hover:text-indigo-300">Manage Users</a>
         <a href="#chat" class="hover:text-indigo-300 relative">
           Live Chat
-          <span id="chatNotification" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
+          <span id="chatNotification" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5" class= "flex items-center justify-center">1</span>
         </a>
         <a href="#transfers" class="hover:text-indigo-300 relative">
           Transfer Requests
-          <span id="transferNotification" class="hidden absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">1</span>
+          <span id="transferNotification" class="hidden absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5" class= "flex items-center justify-center">1</span>
         </a>
       </nav>
       
@@ -664,7 +664,7 @@
       if (!admin) return;
 
       // Connect to Socket.io server
-      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-2-5mv8-backend.onrender.com';
+      const backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://trial-1-sq1y.onrender.com';
       socket = io(backendUrl, {
         auth: {
           token: localStorage.getItem('jwtToken')

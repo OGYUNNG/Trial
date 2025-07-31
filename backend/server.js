@@ -13,14 +13,15 @@ const app = express();
 app.use(express.json());
 
 // 1.setup cors
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : [
+      'https://trial-2-5mv8.onrender.com',
+      'http://localhost:3000'
+    ];
+
 app.use(cors(
-  {origin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : [
-    'https://trial-2-5mv8.onrender.com', // <-- your frontend's deployed URL
-    'http://localhost:3000',             // for local dev, optional
-    'http://localhost:4000'              // for local dev, optional
-  ],
+  {origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   }
@@ -80,19 +81,13 @@ const sequelize = {
 };
 
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',')
-      : [
-          'https://trial-2-5mv8.onrender.com',
-          'http://localhost:3000'
-        ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST']
   }
 });
-
-// CORS configuration for production
 
 // Create data directory if it doesn't exist
 const dataDir = path.join(__dirname, 'data');
